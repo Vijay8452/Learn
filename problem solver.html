@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolveX — AI-Powered Problem Solving</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        display: ['Space Grotesk', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
+      },
+      colors: {
+        base: '#07070d',
+        surface: '#0e0e18',
+        card: '#131320',
+        border: '#1e1e35',
+        accent: { purple: '#8b5cf6', blue: '#3b82f6', cyan: '#06d6f0', pink: '#f472b6' },
+        neon: '#00f0ff',
+      }
+    }
+  }
+}
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #07070d; color: #e2e2f0; overflow-x: hidden; }
+  ::selection { background: rgba(139,92,246,0.4); color: #fff; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #07070d; }
+  ::-webkit-scrollbar-thumb { background: #2a2a45; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+
+  /* Glassmorphism */
+  .glass {
+    background: rgba(14, 14, 24, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.12);
+  }
+  .glass-strong {
+    background: rgba(14, 14, 24, 0.8);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+  }
+
+  /* Neumorphism */
+  .neu {
+    background: linear-gradient(145deg, #111122, #0a0a16);
+    box-shadow: 6px 6px 16px rgba(0,0,0,0.5), -6px -6px 16px rgba(30,30,60,0.15);
+  }
+  .neu-inset {
+    background: linear-gradient(145deg, #0c0c1a, #101020);
+    box-shadow: inset 4px 4px 10px rgba(0,0,0,0.5), inset -4px -4px 10px rgba(30,30,60,0.1);
+  }
+
+  /* Neon glow */
+  .glow-purple { box-shadow: 0 0 20px rgba(139,92,246,0.3), 0 0 60px rgba(139,92,246,0.1); }
+  .glow-cyan { box-shadow: 0 0 20px rgba(6,214,240,0.3), 0 0 60px rgba(6,214,240,0.1); }
+  .glow-text-purple { text-shadow: 0 0 30px rgba(139,92,246,0.5), 0 0 60px rgba(139,92,246,0.2); }
+  .glow-text-cyan { text-shadow: 0 0 30px rgba(6,214,240,0.5), 0 0 60px rgba(6,214,240,0.2); }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6, #06d6f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-warm {
+    background: linear-gradient(135deg, #f472b6, #8b5cf6, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Feature card */
+  .feature-card {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(139,92,246,0.08), transparent 40%);
+    pointer-events: none;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(139,92,246,0.15), 0 0 30px rgba(139,92,246,0.08);
+    border-color: rgba(139,92,246,0.3);
+  }
+  .feature-card .icon-wrap {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .feature-card:hover .icon-wrap {
+    transform: scale(1.15) rotate(5deg);
+    box-shadow: 0 0 25px rgba(139,92,246,0.4);
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  /* Typing cursor */
+  .typing-cursor::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+    color: #8b5cf6;
+    font-weight: 300;
+    margin-left: 2px;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Pulse glow button */
+  .btn-glow {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .btn-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6, #06d6f0, #8b5cf6);
+    background-size: 300% 300%;
+    animation: gradient-shift 3s ease infinite;
+    z-index: -1;
+    filter: blur(12px);
+    opacity: 0.6;
+  }
+  .btn-glow::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6, #06d6f0, #8b5cf6);
+    background-size: 300% 300%;
+    animation: gradient-shift 3s ease infinite;
+    z-index: -2;
+    filter: blur(30px);
+    opacity: 0.3;
+  }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .btn-glow:hover { transform: translateY(-2px) scale(1.03); }
+  .btn-glow:hover::before { opacity: 1; }
+  .btn-glow:hover::after { opacity: 0.5; }
+
+  /* Ripple */
+  .ripple-container { position: relative; overflow: hidden; }
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    transform: scale(0);
+    animation: ripple-anim 0.6s ease-out;
+    pointer-events: none;
+  }
+  @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+
+  /* Chat typing indicator */
+  .chat-dots span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #8b5cf6;
+    margin: 0 2px;
+    animation: dot-bounce 1.4s ease-in-out infinite;
+  }
+  .chat-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .chat-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-8px); opacity: 1; }
+  }
+
+  /* Carousel */
+  .carousel-track {
+    display: flex;
+    gap: 24px;
+    animation: carousel-scroll 30s linear infinite;
+  }
+  .carousel-track:hover { animation-play-state: paused; }
+  @keyframes carousel-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Step connector line */
+  .step-line {
+    background: linear-gradient(90deg, #8b5cf6, #3b82f6, #06d6f0);
+    height: 2px;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .step-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    animation: line-shimmer 2s ease-in-out infinite;
+  }
+  @keyframes line-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Floating orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: orb-float 8s ease-in-out infinite;
+  }
+  @keyframes orb-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -20px) scale(1.05); }
+    66% { transform: translate(-20px, 15px) scale(0.95); }
+  }
+
+  /* Particle canvas */
+  #particles { position: absolute; inset: 0; z-index: 0; }
+
+  /* Nav */
+  .nav-glass {
+    background: rgba(7, 7, 13, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(139,92,246,0.08);
+  }
+
+  /* Input glow on focus */
+  .input-glow:focus {
+    box-shadow: 0 0 0 2px rgba(139,92,246,0.3), 0 0 30px rgba(139,92,246,0.1);
+    border-color: rgba(139,92,246,0.5);
+  }
+
+  /* Step number ring */
+  .step-ring {
+    background: conic-gradient(from 0deg, #8b5cf6, #3b82f6, #06d6f0, #8b5cf6);
+    padding: 2px;
+    border-radius: 50%;
+  }
+
+  /* Smooth section transitions */
+  section { position: relative; }
+
+  /* Mobile menu */
+  .mobile-menu {
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .mobile-menu.open { transform: translateX(0); }
+
+  /* Chat message appear */
+  .chat-msg {
+    animation: msg-appear 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes msg-appear {
+    from { opacity: 0; transform: translateY(12px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Grid pattern */
+  .grid-pattern {
+    background-image:
+      linear-gradient(rgba(139,92,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,92,246,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- Navigation -->
+<nav class="nav-glass fixed top-0 left-0 right-0 z-50">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5 group">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/40 transition-shadow">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+      </div>
+      <span class="font-display font-bold text-lg tracking-tight">Solve<span class="gradient-text">X</span></span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors duration-200">Features</a>
+      <a href="#how-it-works" class="text-sm text-gray-400 hover:text-white transition-colors duration-200">How It Works</a>
+      <a href="#demo" class="text-sm text-gray-400 hover:text-white transition-colors duration-200">Demo</a>
+      <a href="#testimonials" class="text-sm text-gray-400 hover:text-white transition-colors duration-200">Testimonials</a>
+    </div>
+
+    <div class="hidden md:flex items-center gap-3">
+      <button class="ripple-container text-sm text-gray-300 hover:text-white px-4 py-2 rounded-xl transition-colors" onclick="createRipple(event)">Log In</button>
+      <button class="ripple-container text-sm font-medium text-white bg-gradient-to-r from-accent-purple to-accent-blue px-5 py-2 rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 hover:-translate-y-0.5" onclick="createRipple(event)">Get Started</button>
+    </div>
+
+    <button id="mobile-toggle" class="md:hidden w-10 h-10 rounded-xl glass flex items-center justify-center" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div id="mobile-menu" class="mobile-menu fixed inset-0 z-[60] bg-base/95 backdrop-blur-xl flex flex-col">
+  <div class="px-6 h-16 flex items-center justify-between border-b border-border">
+    <span class="font-display font-bold text-lg">Solve<span class="gradient-text">X</span></span>
+    <button id="mobile-close" class="w-10 h-10 rounded-xl glass flex items-center justify-center" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="flex-1 flex flex-col items-center justify-center gap-8">
+    <a href="#features" class="mobile-link text-2xl font-display font-semibold text-gray-300 hover:text-white transition-colors">Features</a>
+    <a href="#how-it-works" class="mobile-link text-2xl font-display font-semibold text-gray-300 hover:text-white transition-colors">How It Works</a>
+    <a href="#demo" class="mobile-link text-2xl font-display font-semibold text-gray-300 hover:text-white transition-colors">Demo</a>
+    <a href="#testimonials" class="mobile-link text-2xl font-display font-semibold text-gray-300 hover:text-white transition-colors">Testimonials</a>
+    <div class="mt-6 flex flex-col gap-3 w-64">
+      <button class="text-center text-sm font-medium text-white border border-border rounded-xl px-5 py-3 hover:bg-white/5 transition-colors">Log In</button>
+      <button class="text-center text-sm font-medium text-white bg-gradient-to-r from-accent-purple to-accent-blue rounded-xl px-5 py-3">Get Started</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden grid-pattern">
+  <canvas id="particles"></canvas>
+
+  <!-- Orbs -->
+  <div class="orb w-[500px] h-[500px] bg-purple-600/15 top-[-10%] left-[-10%]" style="animation-delay: 0s;"></div>
+  <div class="orb w-[400px] h-[400px] bg-blue-600/10 bottom-[10%] right-[-5%]" style="animation-delay: -3s;"></div>
+  <div class="orb w-[300px] h-[300px] bg-cyan-500/8 top-[40%] left-[50%]" style="animation-delay: -5s;"></div>
+
+  <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
+    <!-- Badge -->
+    <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-purple-500/20 mb-8">
+      <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+      <span class="text-xs font-medium text-gray-300">Powered by Advanced AI Models</span>
+    </div>
+
+    <!-- Headline -->
+    <h1 class="reveal reveal-delay-1 font-display font-bold text-5xl sm:text-6xl lg:text-7xl xl:text-8xl leading-[0.95] tracking-tight mb-6">
+      Describe Your Problem.<br>
+      <span class="gradient-text">Get Instant Solutions.</span>
+    </h1>
+
+    <!-- Subheadline -->
+    <p class="reveal reveal-delay-2 text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+      SolveX harnesses next-generation AI to break down complex problems and deliver actionable, step-by-step solutions in seconds.
+    </p>
+
+    <!-- AI Input Box -->
+    <div class="reveal reveal-delay-3 max-w-2xl mx-auto mb-6">
+      <div class="neu-inset rounded-2xl p-1.5">
+        <div class="relative flex items-center bg-surface/80 rounded-xl border border-border focus-within:border-purple-500/40 transition-colors">
+          <div class="pl-5 pr-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5.5 6.5 12 3l6.5 3.5"/><path d="M3 12l4.5 2.5"/><path d="M21 12l-4.5 2.5"/><path d="M7.5 14.5 12 21l4.5-6.5"/></svg>
+          </div>
+          <input id="hero-input" type="text" placeholder="Ask anything..." class="flex-1 bg-transparent py-4 px-2 text-sm sm:text-base text-white placeholder-gray-500 outline-none font-body">
+          <button id="hero-submit" class="ripple-container mr-2 w-10 h-10 rounded-xl bg-gradient-to-r from-accent-purple to-accent-blue flex items-center justify-center hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 flex-shrink-0" onclick="createRipple(event); handleHeroSubmit()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Typing examples -->
+      <div class="mt-4 h-6 flex items-center justify-center">
+        <span id="typing-example" class="text-sm text-gray-500 typing-cursor"></span>
+      </div>
+    </div>
+
+    <!-- Trust indicators -->
+    <div class="reveal reveal-delay-4 flex items-center justify-center gap-6 mt-10 text-xs text-gray-500">
+      <span class="flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Enterprise-grade security
+      </span>
+      <span class="hidden sm:flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Sub-second responses
+      </span>
+      <span class="hidden sm:flex items-center gap-1.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06d6f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        24/7 availability
+      </span>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 animate-bounce">
+    <span class="text-[10px] text-gray-600 uppercase tracking-widest">Scroll</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="relative py-32 overflow-hidden">
+  <div class="orb w-[400px] h-[400px] bg-purple-600/8 top-[20%] right-[-10%]" style="animation-delay:-2s;"></div>
+
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center mb-20">
+      <p class="reveal text-xs font-semibold uppercase tracking-[0.2em] text-accent-purple mb-4">Capabilities</p>
+      <h2 class="reveal reveal-delay-1 font-display font-bold text-4xl sm:text-5xl tracking-tight mb-5">
+        Built for <span class="gradient-text">complex thinking</span>
+      </h2>
+      <p class="reveal reveal-delay-2 text-gray-400 max-w-xl mx-auto text-lg">
+        From debugging code to strategic planning — SolveX adapts to any domain with precision.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <!-- Card 1 -->
+      <div class="feature-card reveal reveal-delay-1 glass rounded-2xl p-7 cursor-default">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center mb-5">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/><circle cx="12" cy="15" r="2"/></svg>
+        </div>
+        <h3 class="font-display font-semibold text-base mb-2">Multi-Step Reasoning</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Breaks complex problems into logical steps with transparent chain-of-thought analysis.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="feature-card reveal reveal-delay-2 glass rounded-2xl p-7 cursor-default">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-5">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <h3 class="font-display font-semibold text-base mb-2">Cross-Domain Expertise</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Engineering, finance, science, law — trained on specialized knowledge across 50+ fields.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="feature-card reveal reveal-delay-3 glass rounded-2xl p-7 cursor-default">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border border-cyan-500/20 flex items-center justify-center mb-5">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="12" y1="6" x2="12" y2="12"/></svg>
+        </div>
+        <h3 class="font-display font-semibold text-base mb-2">Interactive Dialogue</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Ask follow-up questions, refine constraints, and iterate on solutions in real time.</p>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="feature-card reveal reveal-delay-4 glass rounded-2xl p-7 cursor-default">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-600/10 border border-pink-500/20 flex items-center justify-center mb-5">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <h3 class="font-display font-semibold text-base mb-2">Export & Integrate</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Generate reports, export to Notion, connect via API — solutions flow into your workflow.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works" class="relative py-32 overflow-hidden">
+  <div class="orb w-[350px] h-[350px] bg-blue-600/8 bottom-[10%] left-[-8%]" style="animation-delay:-4s;"></div>
+
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-20">
+      <p class="reveal text-xs font-semibold uppercase tracking-[0.2em] text-accent-blue mb-4">Process</p>
+      <h2 class="reveal reveal-delay-1 font-display font-bold text-4xl sm:text-5xl tracking-tight mb-5">
+        Three steps to <span class="gradient-text-warm">clarity</span>
+      </h2>
+      <p class="reveal reveal-delay-2 text-gray-400 max-w-xl mx-auto text-lg">
+        No setup, no learning curve. Just describe your problem and watch the magic unfold.
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-[1fr_auto_1fr_auto_1fr] gap-8 lg:gap-0 items-center">
+      <!-- Step 1 -->
+      <div class="reveal reveal-delay-1 text-center">
+        <div class="step-ring w-16 h-16 mx-auto mb-6 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-surface flex items-center justify-center">
+            <span class="font-display font-bold text-lg gradient-text">1</span>
+          </div>
+        </div>
+        <h3 class="font-display font-semibold text-lg mb-2">Describe</h3>
+        <p class="text-sm text-gray-400 leading-relaxed max-w-[220px] mx-auto">Type or paste your problem in natural language. Any format, any complexity.</p>
+      </div>
+
+      <div class="hidden lg:block step-line mx-4"></div>
+
+      <!-- Step 2 -->
+      <div class="reveal reveal-delay-2 text-center">
+        <div class="step-ring w-16 h-16 mx-auto mb-6 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-surface flex items-center justify-center">
+            <span class="font-display font-bold text-lg gradient-text">2</span>
+          </div>
+        </div>
+        <h3 class="font-display font-semibold text-lg mb-2">Analyze</h3>
+        <p class="text-sm text-gray-400 leading-relaxed max-w-[220px] mx-auto">SolveX decomposes your problem, identifies patterns, and builds a solution framework.</p>
+      </div>
+
+      <div class="hidden lg:block step-line mx-4"></div>
+
+      <!-- Step 3 -->
+      <div class="reveal reveal-delay-3 text-center">
+        <div class="step-ring w-16 h-16 mx-auto mb-6 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-surface flex items-center justify-center">
+            <span class="font-display font-bold text-lg gradient-text">3</span>
+          </div>
+        </div>
+        <h3 class="font-display font-semibold text-lg mb-2">Solve</h3>
+        <p class="text-sm text-gray-400 leading-relaxed max-w-[220px] mx-auto">Receive a detailed, actionable solution with explanations and next steps.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo Section -->
+<section id="demo" class="relative py-32 overflow-hidden">
+  <div class="orb w-[400px] h-[400px] bg-cyan-500/6 top-[10%] right-[5%]" style="animation-delay:-1s;"></div>
+
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <p class="reveal text-xs font-semibold uppercase tracking-[0.2em] text-accent-cyan mb-4">Live Preview</p>
+      <h2 class="reveal reveal-delay-1 font-display font-bold text-4xl sm:text-5xl tracking-tight mb-5">
+        See it in <span class="gradient-text">action</span>
+      </h2>
+      <p class="reveal reveal-delay-2 text-gray-400 max-w-xl mx-auto text-lg">
+        Watch how SolveX handles a real-world problem in real time.
+      </p>
+    </div>
+
+    <div class="reveal reveal-delay-2 max-w-3xl mx-auto">
+      <div class="glass-strong rounded-2xl overflow-hidden glow-purple">
+        <!-- Chat header -->
+        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-border">
+          <div class="flex gap-1.5">
+            <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+          </div>
+          <div class="flex-1 text-center">
+            <span class="text-xs text-gray-500 font-medium">SolveX AI — Live Session</span>
+          </div>
+          <div class="w-14"></div>
+        </div>
+
+        <!-- Chat body -->
+        <div id="chat-body" class="p-5 space-y-4 min-h-[320px] max-h-[420px] overflow-y-auto">
+          <!-- Messages injected by JS -->
+        </div>
+
+        <!-- Chat input -->
+        <div class="px-5 pb-4">
+          <div class="flex items-center gap-2 bg-surface/60 rounded-xl border border-border px-4 py-2.5">
+            <input id="chat-input" type="text" placeholder="Try asking a follow-up..." class="flex-1 bg-transparent text-sm text-white placeholder-gray-500 outline-none">
+            <button id="chat-send" class="ripple-container w-8 h-8 rounded-lg bg-gradient-to-r from-accent-purple to-accent-blue flex items-center justify-center flex-shrink-0 hover:shadow-lg hover:shadow-purple-500/25 transition-all" onclick="createRipple(event); sendChatMessage()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section id="testimonials" class="relative py-32 overflow-hidden">
+  <div class="orb w-[300px] h-[300px] bg-pink-500/6 top-[30%] left-[-5%]" style="animation-delay:-6s;"></div>
+
+  <div class="max-w-7xl mx-auto px-6 mb-16">
+    <div class="text-center">
+      <p class="reveal text-xs font-semibold uppercase tracking-[0.2em] text-accent-pink mb-4">Testimonials</p>
+      <h2 class="reveal reveal-delay-1 font-display font-bold text-4xl sm:text-5xl tracking-tight mb-5">
+        Trusted by <span class="gradient-text-warm">thousands</span>
+      </h2>
+      <p class="reveal reveal-delay-2 text-gray-400 max-w-xl mx-auto text-lg">
+        Teams and individuals solving better, faster, smarter.
+      </p>
+    </div>
+  </div>
+
+  <div class="overflow-hidden">
+    <div class="carousel-track">
+      <!-- Cards (duplicated for infinite scroll) -->
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"SolveX cut our debugging time by 70%. What used to take hours of back-and-forth now takes minutes. It's like having a senior engineer on call 24/7."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white">MR</div>
+          <div><p class="text-sm font-medium">Marcus Reid</p><p class="text-xs text-gray-500">CTO, NovaByte</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"As a product manager, I use SolveX for competitive analysis and strategy framing. The depth of reasoning is genuinely impressive — better than most consultants I've worked with."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white">SL</div>
+          <div><p class="text-sm font-medium">Sarah Lin</p><p class="text-xs text-gray-500">PM, Axiom Labs</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"I was skeptical about AI problem-solving tools, but SolveX handled a complex supply chain optimization that had stumped our team for weeks. Genuinely game-changing."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">JK</div>
+          <div><p class="text-sm font-medium">James Kowalski</p><p class="text-xs text-gray-500">VP Ops, Meridian</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"Our research team uses SolveX to brainstorm hypotheses and design experiments. It's like having a brilliant co-pilot that never gets tired."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">AP</div>
+          <div><p class="text-sm font-medium">Dr. Amara Patel</p><p class="text-xs text-gray-500">Lead Researcher, GenVox</p></div>
+        </div>
+      </div>
+
+      <!-- Duplicate set for seamless loop -->
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"SolveX cut our debugging time by 70%. What used to take hours of back-and-forth now takes minutes. It's like having a senior engineer on call 24/7."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white">MR</div>
+          <div><p class="text-sm font-medium">Marcus Reid</p><p class="text-xs text-gray-500">CTO, NovaByte</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"As a product manager, I use SolveX for competitive analysis and strategy framing. The depth of reasoning is genuinely impressive — better than most consultants I've worked with."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white">SL</div>
+          <div><p class="text-sm font-medium">Sarah Lin</p><p class="text-xs text-gray-500">PM, Axiom Labs</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"I was skeptical about AI problem-solving tools, but SolveX handled a complex supply chain optimization that had stumped our team for weeks. Genuinely game-changing."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">JK</div>
+          <div><p class="text-sm font-medium">James Kowalski</p><p class="text-xs text-gray-500">VP Ops, Meridian</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-7 min-w-[340px] max-w-[380px] flex-shrink-0 border border-border">
+        <div class="flex gap-1 mb-4">
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <svg class="text-yellow-400" width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed mb-5">"Our research team uses SolveX to brainstorm hypotheses and design experiments. It's like having a brilliant co-pilot that never gets tired."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">AP</div>
+          <div><p class="text-sm font-medium">Dr. Amara Patel</p><p class="text-xs text-gray-500">Lead Researcher, GenVox</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="relative py-32 overflow-hidden">
+  <div class="orb w-[500px] h-[500px] bg-purple-600/12 top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2" style="animation-delay:-2s;"></div>
+
+  <div class="relative z-10 max-w-3xl mx-auto px-6 text-center">
+    <h2 class="reveal font-display font-bold text-4xl sm:text-5xl lg:text-6xl tracking-tight mb-6">
+      Ready to solve<br><span class="gradient-text">anything?</span>
+    </h2>
+    <p class="reveal reveal-delay-1 text-gray-400 text-lg mb-10 max-w-lg mx-auto">
+      Join 50,000+ professionals who think smarter, not harder. Free to start — no credit card required.
+    </p>
+    <div class="reveal reveal-delay-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <button class="btn-glow ripple-container bg-gradient-to-r from-accent-purple to-accent-blue text-white font-semibold text-base px-10 py-4 rounded-2xl" onclick="createRipple(event)">
+        Start Solving Free
+      </button>
+      <button class="ripple-container text-sm font-medium text-gray-300 border border-border rounded-2xl px-8 py-4 hover:bg-white/5 hover:border-gray-600 transition-all duration-300" onclick="createRipple(event)">
+        View Documentation
+      </button>
+    </div>
+    <p class="reveal reveal-delay-3 text-xs text-gray-600 mt-6">No credit card · Free tier available · Cancel anytime</p>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="border-t border-border py-16">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
+      <div>
+        <a href="#" class="flex items-center gap-2.5 mb-5">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-accent-purple to-accent-blue flex items-center justify-center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+          </div>
+          <span class="font-display font-bold text-sm">SolveX</span>
+        </a>
+        <p class="text-sm text-gray-500 leading-relaxed">Next-generation AI problem solving for teams and individuals.</p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-sm mb-4">Product</h4>
+        <ul class="space-y-2.5 text-sm text-gray-500">
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Features</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Pricing</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">API</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-sm mb-4">Company</h4>
+        <ul class="space-y-2.5 text-sm text-gray-500">
+          <li><a href="#" class="hover:text-gray-300 transition-colors">About</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Blog</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Careers</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-sm mb-4">Legal</h4>
+        <ul class="space-y-2.5 text-sm text-gray-500">
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Privacy</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Terms</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">Security</a></li>
+          <li><a href="#" class="hover:text-gray-300 transition-colors">GDPR</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border">
+      <p class="text-xs text-gray-600">© 2027 SolveX. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <a href="#" class="text-gray-600 hover:text-gray-400 transition-colors" aria-label="Twitter">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="#" class="text-gray-600 hover:text-gray-400 transition-colors" aria-label="GitHub">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+        <a href="#" class="text-gray-600 hover:text-gray-400 transition-colors" aria-label="LinkedIn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ===================== PARTICLES =====================
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let mouseX = 0, mouseY = 0;
+
+function resizeCanvas() {
+  canvas.width = canvas.parentElement.offsetWidth;
+  canvas.height = canvas.parentElement.offsetHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 1.5 + 0.5;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.4 + 0.1;
+    this.color = ['139,92,246', '59,130,246', '6,214,240'][Math.floor(Math.random() * 3)];
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    // Subtle parallax toward mouse
+    const dx = mouseX - this.x;
+    const dy = mouseY - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 200) {
+      this.x += dx * 0.001;
+      this.y += dy * 0.001;
+    }
+    if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+    if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color},${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+const particleCount = Math.min(80, Math.floor(window.innerWidth / 15));
+for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+function drawLines() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(139,92,246,${0.06 * (1 - dist / 120)})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  drawLines();
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+document.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+// ===================== TYPING EFFECT =====================
+const examples = [
+  "How do I optimize a React app with 10k+ components?",
+  "Design a go-to-market strategy for a B2B SaaS product",
+  "Debug this Python memory leak in my data pipeline",
+  "Create a financial model for a Series A startup",
+  "Write an algorithm to detect fraud in real-time transactions"
+];
+let exampleIdx = 0, charIdx = 0, isDeleting = false;
+const typingEl = document.getElementById('typing-example');
+
+function typeLoop() {
+  const current = examples[exampleIdx];
+  if (!isDeleting) {
+    typingEl.textContent = current.slice(0, charIdx + 1);
+    charIdx++;
+    if (charIdx === current.length) {
+      isDeleting = true;
+      setTimeout(typeLoop, 2000);
+      return;
+    }
+    setTimeout(typeLoop, 40 + Math.random() * 30);
+  } else {
+    typingEl.textContent = current.slice(0, charIdx - 1);
+    charIdx--;
+    if (charIdx === 0) {
+      isDeleting = false;
+      exampleIdx = (exampleIdx + 1) % examples.length;
+      setTimeout(typeLoop, 400);
+      return;
+    }
+    setTimeout(typeLoop, 20);
+  }
+}
+typeLoop();
+
+// ===================== HERO SUBMIT =====================
+function handleHeroSubmit() {
+  const input = document.getElementById('hero-input');
+  if (input.value.trim()) {
+    // Smooth scroll to demo
+    document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
+    input.value = '';
+  }
+}
+document.getElementById('hero-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleHeroSubmit();
+});
+
+// ===================== SCROLL REVEAL =====================
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('active');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===================== FEATURE CARD MOUSE TRACKING =====================
+document.querySelectorAll('.feature-card').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  });
+});
+
+// ===================== RIPPLE EFFECT =====================
+function createRipple(e) {
+  const el = e.currentTarget;
+  const rect = el.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  el.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+// ===================== MOBILE MENU =====================
+const mobileMenu = document.getElementById('mobile-menu');
+document.getElementById('mobile-toggle').addEventListener('click', () => mobileMenu.classList.add('open'));
+document.getElementById('mobile-close').addEventListener('click', () => mobileMenu.classList.remove('open'));
+document.querySelectorAll('.mobile-link').forEach(link => {
+  link.addEventListener('click', () => mobileMenu.classList.remove('open'));
+});
+
+// ===================== CHAT DEMO =====================
+const chatBody = document.getElementById('chat-body');
+const chatInput = document.getElementById('chat-input');
+let chatStarted = false;
+
+const demoConversation = [
+  {
+    role: 'user',
+    text: 'My e-commerce checkout has a 68% abandonment rate. How do I diagnose and fix this?'
+  },
+  {
+    role: 'ai',
+    text: `Great question — let's break this down systematically.\n\n**🔍 Diagnosis Framework:**\n\n1. **Funnel Analytics** — Install event tracking at each checkout step (cart → shipping → payment → confirm). Identify the exact drop-off point.\n\n2. **Common Causes by Drop-off Stage:**\n   • Cart → Shipping: Unexpected shipping costs, forced account creation\n   • Shipping → Payment: Limited payment options, trust signals missing\n   • Payment → Confirm: Payment errors, slow processing, unclear confirmation\n\n3. **Quick Wins to Implement First:**\n   • Show shipping costs early (don't surprise at payment)\n   • Add guest checkout option\n   • Display trust badges (SSL, payment logos, reviews)\n   • Add progress indicator\n   • Offer saved cart / email reminder for abandoned carts\n\n**Expected Impact:** These changes typically reduce abandonment by 15-25% within 30 days.\n\nWant me to dive deeper into any of these areas?`
+  }
+];
+
+const followUpResponses = [
+  "Great follow-up! For A/B testing the checkout flow, I'd recommend starting with the highest-impact variable first. Split test: (1) guest checkout vs. account-required, (2) shipping cost visibility — show upfront vs. at payment step. Use a sample size calculator to ensure statistical significance — typically 2-3 weeks of traffic. Tools like Optimizely or VWO work well for this.",
+  "For the email recovery flow, here's an optimized sequence: Send at 1hr (gentle reminder, show cart items), 24hr (add 10% discount if cart > $50), 72hr (final reminder, urgency messaging). Personalize with product images and a direct 'Complete Purchase' CTA. This alone typically recovers 5-12% of abandoned carts.",
+  "Absolutely. For payment optimization: ensure you support at least credit card, PayPal, Apple Pay, and Google Pay. Consider Buy Now Pay Later (Klarna/Afterpay) — it can boost conversion 20-30% for orders over $100. Also pre-fill returning customer data and minimize form fields to essentials.",
+  "Smart approach. Here's a priority matrix: High effort/high impact → Guest checkout + shipping cost transparency. Low effort/high impact → Trust badges + progress bar. Low effort/low impact → Minor copy tweaks. Defer high effort/low impact items. Start with the top-left quadrant for fastest ROI."
+];
+
+function addChatMessage(role, text, animate = true) {
+  const wrapper = document.createElement('div');
+  wrapper.className = `chat-msg flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = role === 'user'
+    ? 'max-w-[85%] bg-gradient-to-r from-accent-purple/30 to-accent-blue/20 border border-purple-500/20 rounded-2xl rounded-tr-md px-4 py-3'
+    : 'max-w-[85%] bg-surface/60 border border-border rounded-2xl rounded-tl-md px-4 py-3';
+
+  // Parse markdown-like bold
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-medium">$1</strong>')
+                 .replace(/\n/g, '<br>');
+  bubble.innerHTML = `<p class="text-sm text-gray-300 leading-relaxed">${html}</p>`;
+
+  wrapper.appendChild(bubble);
+  chatBody.appendChild(wrapper);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'chat-msg flex justify-start';
+  wrapper.id = 'typing-indicator';
+  wrapper.innerHTML = `
+    <div class="bg-surface/60 border border-border rounded-2xl rounded-tl-md px-5 py-3">
+      <div class="chat-dots"><span></span><span></span><span></span></div>
+    </div>
+  `;
+  chatBody.appendChild(wrapper);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+function startDemoChat() {
+  if (chatStarted) return;
+  chatStarted = true;
+
+  // First user message
+  setTimeout(() => {
+    addChatMessage('user', demoConversation[0].text);
+    // AI typing
+    setTimeout(() => {
+      addTypingIndicator();
+      setTimeout(() => {
+        removeTypingIndicator();
+        addChatMessage('ai', demoConversation[1].text);
+      }, 2500);
+    }, 800);
+  }, 500);
+}
+
+// Observe demo section to trigger chat
+const demoObserver = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting) {
+    startDemoChat();
+    demoObserver.disconnect();
+  }
+}, { threshold: 0.3 });
+demoObserver.observe(document.getElementById('demo'));
+
+// Chat input handling
+let followUpIdx = 0;
+function sendChatMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  chatInput.value = '';
+  addChatMessage('user', text);
+  setTimeout(() => {
+    addTypingIndicator();
+    setTimeout(() => {
+      removeTypingIndicator();
+      addChatMessage('ai', followUpResponses[followUpIdx % followUpResponses.length]);
+      followUpIdx++;
+    }, 1500);
+  }, 500);
+}
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChatMessage();
+});
+
+// ===================== NAV SCROLL EFFECT =====================
+let lastScroll = 0;
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+  const current = window.scrollY;
+  if (current > 100) {
+    nav.style.borderBottomColor = 'rgba(139,92,246,0.12)';
+  } else {
+    nav.style.borderBottomColor = 'rgba(139,92,246,0.08)';
+  }
+  lastScroll = current;
+});
+
+// ===================== SMOOTH ANCHOR SCROLL =====================
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function(e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+
+</body>
+</html>
