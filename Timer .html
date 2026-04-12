@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>Chronosphere | Precision Stopwatch</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'SF Pro Text', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      padding: 1rem;
+    }
+
+    /* Dark mode base (default) */
+    body.dark {
+      background: radial-gradient(circle at 20% 30%, #020617, #0a0f1f);
+    }
+    body.light {
+      background: radial-gradient(circle at 20% 30%, #eef2ff, #f9fafc);
+    }
+
+    /* Glassmorphism container */
+    .stopwatch-card {
+      max-width: 620px;
+      width: 100%;
+      background: rgba(15, 25, 45, 0.38);
+      backdrop-filter: blur(18px);
+      border-radius: 3.5rem;
+      padding: 1.8rem 1.5rem 2rem;
+      box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      transition: all 0.3s ease;
+    }
+    body.light .stopwatch-card {
+      background: rgba(245, 248, 255, 0.7);
+      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(98, 91, 113, 0.12);
+    }
+
+    /* header */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    h1 {
+      font-weight: 550;
+      font-size: 1.65rem;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #eef2ff, #94a3f8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    body.dark h1 {
+      background: linear-gradient(135deg, #cbd5ff, #2dd4bf);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    .theme-toggle {
+      background: rgba(128, 128, 128, 0.15);
+      border: none;
+      border-radius: 3rem;
+      width: 2.6rem;
+      height: 2.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: transform 0.2s, background 0.2s;
+      font-size: 1.3rem;
+    }
+    .theme-toggle:hover {
+      transform: scale(1.05);
+      background: rgba(128, 128, 128, 0.3);
+    }
+
+    /* circular dial + time container */
+    .dial-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 1rem auto 1.2rem;
+    }
+    @media (min-width: 500px) {
+      .dial-container {
+        width: 320px;
+        height: 320px;
+      }
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    .time-center {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+    .time-digits {
+      font-size: 2.9rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      letter-spacing: 2px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      padding: 0.2rem 1rem;
+      border-radius: 3rem;
+    }
+    body.dark .time-digits {
+      color: #f1f5f9;
+      text-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+    }
+    body.light .time-digits {
+      color: #1e1b2c;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    .milli-preview {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 0.2rem;
+    }
+
+    /* pulsing glow for active state */
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.5); }
+      70% { box-shadow: 0 0 0 12px rgba(34, 211, 238, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+    }
+    .running-glow {
+      animation: pulseGlow 1.6s infinite;
+      border-radius: 50%;
+    }
+
+    /* control buttons grid */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1.8rem 0 1.5rem;
+    }
+    .btn {
+      border: none;
+      font-weight: 550;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2.5rem;
+      backdrop-filter: blur(8px);
+      background: rgba(30, 40, 60, 0.7);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.6, 1.1), background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+      letter-spacing: 0.3px;
+    }
+    body.light .btn {
+      background: rgba(220, 225, 250, 0.8);
+      color: #1e1f2c;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .btn-primary {
+      background: linear-gradient(125deg, #22d3ee, #0f8b9e);
+      color: white;
+      font-weight: 600;
+    }
+    body.light .btn-primary {
+      background: linear-gradient(125deg, #6366f1, #4f46e5);
+      color: white;
+    }
+    .btn-reset {
+      background: rgba(100, 100, 120, 0.65);
+    }
+    .btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    /* lap section */
+    .lap-section {
+      margin-top: 1.2rem;
+    }
+    .lap-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      opacity: 0.7;
+      letter-spacing: 0.5px;
+    }
+    .lap-list {
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 0.3rem;
+      border-radius: 1.5rem;
+    }
+    .lap-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.7rem 1rem;
+      margin: 0.4rem 0;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(4px);
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      transition: all 0.25s ease;
+      animation: slideFadeUp 0.28s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+    @keyframes slideFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    body.light .lap-item {
+      background: rgba(0, 0, 0, 0.03);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .lap-number {
+      font-weight: 600;
+    }
+    .lap-time {
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+    .fastest {
+      background: rgba(34, 211, 238, 0.25);
+      border-left: 4px solid #22d3ee;
+    }
+    .slowest {
+      background: rgba(245, 158, 11, 0.2);
+      border-left: 4px solid #f59e0b;
+    }
+    .empty-laps {
+      text-align: center;
+      opacity: 0.5;
+      padding: 1rem;
+      font-style: italic;
+    }
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #22d3ee;
+      border-radius: 20px;
+    }
+
+    /* responsive touches */
+    @media (max-width: 460px) {
+      .stopwatch-card {
+        padding: 1rem;
+      }
+      .btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.85rem;
+      }
+      .time-digits {
+        font-size: 2.2rem;
+      }
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="stopwatch-card">
+    <div class="app-header">
+      <h1>⚡ CHRONOSPHERE</h1>
+      <button class="theme-toggle" id="themeToggle" aria-label="Dark/Light mode">🌙</button>
+    </div>
+
+    <!-- animated circular dial + time -->
+    <div class="dial-container" id="dialContainer">
+      <canvas id="progressCanvas" width="400" height="400"></canvas>
+      <div class="time-center">
+        <div class="time-digits" id="timeDisplay">00:00:00.00</div>
+        <div class="milli-preview" id="milliHint">precision</div>
+      </div>
+    </div>
+
+    <!-- control group -->
+    <div class="controls">
+      <button class="btn btn-primary" id="startStopBtn">▶ START</button>
+      <button class="btn" id="resetBtn">⟳ RESET</button>
+      <button class="btn" id="lapBtn" disabled>⏱️ LAP</button>
+    </div>
+
+    <!-- lap tracker -->
+    <div class="lap-section">
+      <div class="lap-header">
+        <span>🏁 LAPS</span>
+        <span>fastest / slowest highlighted</span>
+      </div>
+      <div id="lapListContainer" class="lap-list">
+        <div class="empty-laps">— tap LAP to record —</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- DOM elements ----------
+      const timeDisplay = document.getElementById('timeDisplay');
+      const startStopBtn = document.getElementById('startStopBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const lapBtn = document.getElementById('lapBtn');
+      const lapListContainer = document.getElementById('lapListContainer');
+      const themeToggle = document.getElementById('themeToggle');
+      const canvas = document.getElementById('progressCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // ---------- timing variables ----------
+      let startTime = 0;           // base timestamp when started / resumed (ms)
+      let accumulatedTime = 0;     // elapsed before last pause (ms)
+      let running = false;
+      let animationFrameId = null;
+      let currentElapsedMs = 0;     // for realtime display & ring
+      
+      // ---------- lap storage ----------
+      let laps = [];                // each lap: { lapTimeMs, totalTimeMs }
+      
+      // ---------- high precision update (no drift) ----------
+      function getCurrentElapsed() {
+        if (!running) return accumulatedTime;
+        const now = performance.now();
+        return accumulatedTime + (now - startTime);
+      }
+      
+      // format: HH:MM:SS.ms (two-digit minutes/hours but we show up to 99h)
+      function formatTime(msTotal) {
+        if (msTotal < 0) msTotal = 0;
+        const totalSeconds = Math.floor(msTotal / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const milliseconds = Math.floor(msTotal % 1000);
+        const paddedHours = hours.toString().padStart(2, '0');
+        const paddedMins = minutes.toString().padStart(2, '0');
+        const paddedSecs = seconds.toString().padStart(2, '0');
+        const paddedMs = milliseconds.toString().padStart(2, '0').slice(0,2);
+        return `${paddedHours}:${paddedMins}:${paddedSecs}.${paddedMs}`;
+      }
+      
+      // format for lap items (compact but precise)
+      function formatLapTime(ms) {
+        const totalSecs = Math.floor(ms / 1000);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+        const msRaw = Math.floor(ms % 1000);
+        return `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}.${msRaw.toString().padStart(2,'0').slice(0,2)}`;
+      }
+      
+      // update UI time & ring canvas (smooth 60fps)
+      function updateDisplayAndRing() {
+        const nowElapsed = getCurrentElapsed();
+        currentElapsedMs = nowElapsed;
+        timeDisplay.innerText = formatTime(nowElapsed);
+        drawProgressRing(nowElapsed);
+      }
+      
+      // circular dial: full circle = 60 minutes? but to feel smooth we map full rotation = 360deg for 1 hour? more dynamic: use modulo 3600 seconds? better: map full circle = 1 hour (3600 seconds) or infinite? we'll map circumference progress = (elapsed seconds % 3600) / 3600, but to make it interesting, the ring rotates without reset, but shows progress within current hour? actually we want continuous motion and nice aesthetic: map to full circle after 60 minutes (3600 sec). For times > 1h it rotates multiple times but we keep angle = ( (elapsedSec % 3600) / 3600 ) * 2*PI. This gives satisfying sweep effect.
+        // plus subtle glow trail and smooth transitions
+      function drawProgressRing(elapsedMs) {
+        if (!ctx) return;
+        const size = canvas.width; // 400px
+        const center = size / 2;
+        const radius = size * 0.38;
+        const strokeWidth = 12;
+        // map progress: 0 to 2pi over 60 minutes (3600000 ms)
+        const fullCycleMs = 3600000; // 1 hour cycle -> ring rotates completely each hour
+        let progress = (elapsedMs % fullCycleMs) / fullCycleMs;
+        const angle = progress * Math.PI * 2;
+        
+        // clear canvas with transparency
+        ctx.clearRect(0, 0, size, size);
+        // background track (thin glass)
+        ctx.beginPath();
+        ctx.arc(center, center, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = strokeWidth;
+        ctx.stroke();
+        
+        // dynamic gradient progress ring
+        const gradient = ctx.createLinearGradient(20, 20, size-20, size-20);
+        if (document.body.classList.contains('dark')) {
+          gradient.addColorStop(0, '#22d3ee');
+          gradient.addColorStop(1, '#a5f3fc');
+        } else {
+          gradient.addColorStop(0, '#6366f1');
+          gradient.addColorStop(1, '#818cf8');
+        }
+        ctx.beginPath();
+        ctx.arc(center, center, radius, -Math.PI / 2, -Math.PI / 2 + angle);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = strokeWidth;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        
+        // glow effect
+        ctx.shadowBlur = 0;
+        // inner decorative glow dot
+        ctx.beginPath();
+        ctx.arc(center + Math.cos(angle - Math.PI/2) * radius, center + Math.sin(angle - Math.PI/2) * radius, 6, 0, 2*Math.PI);
+        ctx.fillStyle = '#22d3ee';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#22d3ee';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      
+      // render loop (smooth animation)
+      function tick() {
+        if (running) {
+          updateDisplayAndRing();
+          animationFrameId = requestAnimationFrame(tick);
+        } else {
+          // still update once when paused to keep static ring consistent
+          updateDisplayAndRing();
+        }
+      }
+      
+      function startStopwatch() {
+        if (running) return;
+        startTime = performance.now();
+        running = true;
+        lapBtn.disabled = false;
+        startStopBtn.innerText = '⏸ STOP';
+        startStopBtn.classList.add('btn-primary');
+        // add pulsing glow to dial container
+        document.getElementById('dialContainer').classList.add('running-glow');
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(function animateLoop() {
+          tick();
+          if (running) animationFrameId = requestAnimationFrame(animateLoop);
+        });
+      }
+      
+      function pauseStopwatch() {
+        if (!running) return;
+        // accumulate final time
+        accumulatedTime = getCurrentElapsed();
+        running = false;
+        startStopBtn.innerText = '▶ START';
+        document.getElementById('dialContainer').classList.remove('running-glow');
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        updateDisplayAndRing();
+        lapBtn.disabled = false; // still can record lap when paused? typical: stopwatch stopped lap still works, but we allow; good.
+      }
+      
+      function resetStopwatch() {
+        // stop if running
+        if (running) {
+          running = false;
+          startStopBtn.innerText = '▶ START';
+          document.getElementById('dialContainer').classList.remove('running-glow');
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+        }
+        accumulatedTime = 0;
+        startTime = 0;
+        currentElapsedMs = 0;
+        // clear laps
+        laps = [];
+        renderLapList();
+        updateDisplayAndRing();
+        lapBtn.disabled = true;   // no laps possible when time 0? actually if reset, disable lap
+        startStopBtn.innerText = '▶ START';
+        // optional haptic & sound feedback lightweight
+      }
+      
+      // record lap based on current total elapsed time
+      function recordLap() {
+        const totalElapsed = getCurrentElapsed();
+        if (totalElapsed === 0 && laps.length === 0) {
+          // optional prevent recording zero lap
+          return;
+        }
+        let lastTotal = laps.length > 0 ? laps[laps.length-1].totalTimeMs : 0;
+        let lapDuration = totalElapsed - lastTotal;
+        if (lapDuration < 0) lapDuration = 0;
+        const lapObj = {
+          lapTimeMs: lapDuration,
+          totalTimeMs: totalElapsed,
+          index: laps.length + 1
+        };
+        laps.push(lapObj);
+        renderLapList();
+        // optional haptic for mobile
+        if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(20);
+      }
+      
+      // render lap items with fastest/slowest highlight
+      function renderLapList() {
+        if (!lapListContainer) return;
+        if (laps.length === 0) {
+          lapListContainer.innerHTML = '<div class="empty-laps">— tap LAP to record —</div>';
+          return;
+        }
+        // find fastest & slowest lap (based on lapTimeMs)
+        let fastestMs = Infinity, slowestMs = -Infinity;
+        for (let lap of laps) {
+          if (lap.lapTimeMs < fastestMs) fastestMs = lap.lapTimeMs;
+          if (lap.lapTimeMs > slowestMs) slowestMs = lap.lapTimeMs;
+        }
+        const fragment = document.createDocumentFragment();
+        laps.forEach((lap) => {
+          const lapDiv = document.createElement('div');
+          lapDiv.className = 'lap-item';
+          if (lap.lapTimeMs === fastestMs && fastestMs !== Infinity) lapDiv.classList.add('fastest');
+          if (lap.lapTimeMs === slowestMs && slowestMs !== -Infinity && fastestMs !== slowestMs) lapDiv.classList.add('slowest');
+          
+          const lapNumSpan = document.createElement('span');
+          lapNumSpan.className = 'lap-number';
+          lapNumSpan.innerText = `Lap ${lap.index}`;
+          const lapTimeSpan = document.createElement('span');
+          lapTimeSpan.className = 'lap-time';
+          lapTimeSpan.innerText = `${formatLapTime(lap.lapTimeMs)}  (total: ${formatLapTime(lap.totalTimeMs)})`;
+          lapDiv.appendChild(lapNumSpan);
+          lapDiv.appendChild(lapTimeSpan);
+          fragment.appendChild(lapDiv);
+        });
+        lapListContainer.innerHTML = '';
+        lapListContainer.appendChild(fragment);
+      }
+      
+      // ---- theme persistence & smooth transition ----
+      function setTheme(theme) {
+        const body = document.body;
+        if (theme === 'dark') {
+          body.classList.remove('light');
+          body.classList.add('dark');
+          localStorage.setItem('stopwatch_theme', 'dark');
+          themeToggle.innerText = '☀️';
+        } else {
+          body.classList.remove('dark');
+          body.classList.add('light');
+          localStorage.setItem('stopwatch_theme', 'light');
+          themeToggle.innerText = '🌙';
+        }
+        // re-draw ring to adapt gradient colors instantly
+        drawProgressRing(currentElapsedMs);
+      }
+      
+      function toggleTheme() {
+        const isDark = document.body.classList.contains('dark');
+        setTheme(isDark ? 'light' : 'dark');
+      }
+      
+      // init theme from localStorage
+      function initTheme() {
+        const saved = localStorage.getItem('stopwatch_theme');
+        if (saved === 'light') {
+          setTheme('light');
+        } else {
+          setTheme('dark');
+        }
+      }
+      
+      // ---- additional: optional export laps ----
+      function exportLaps() {
+        if (laps.length === 0) return;
+        let csv = "Lap #,Lap Time (ms),Total Time (ms)\n";
+        laps.forEach(lap => {
+          csv += `${lap.index},${lap.lapTimeMs},${lap.totalTimeMs}\n`;
+        });
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `stopwatch_laps_${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      
+      // add hidden export button via double tap on lap header (optional feature)
+      const lapHeader = document.querySelector('.lap-header');
+      if (lapHeader) {
+        lapHeader.addEventListener('dblclick', () => {
+          if (laps.length) exportLaps();
+          else {
+            const msg = document.createElement('div');
+            msg.innerText = '📭 No laps to export';
+            msg.style.position = 'fixed'; msg.style.bottom = '20px'; msg.style.left = '20px';
+            msg.style.background = '#22d3ee'; msg.style.padding = '6px 12px'; msg.style.borderRadius = '30px';
+            msg.style.color = '#0f172a'; msg.style.fontSize = '12px'; msg.style.zIndex = 999;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 1200);
+          }
+        });
+      }
+      
+      // event binding
+      startStopBtn.addEventListener('click', () => {
+        if (running) {
+          pauseStopwatch();
+        } else {
+          startStopwatch();
+        }
+      });
+      
+      resetBtn.addEventListener('click', () => {
+        resetStopwatch();
+        if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(10);
+      });
+      
+      lapBtn.addEventListener('click', () => {
+        recordLap();
+      });
+      
+      themeToggle.addEventListener('click', toggleTheme);
+      
+      // initial canvas size & draw
+      function resizeCanvas() {
+        const container = document.querySelector('.dial-container');
+        const size = container.clientWidth;
+        canvas.width = size;
+        canvas.height = size;
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        drawProgressRing(currentElapsedMs);
+      }
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        drawProgressRing(getCurrentElapsed());
+      });
+      resizeCanvas();
+      
+      // initialize display
+      accumulatedTime = 0;
+      running = false;
+      laps = [];
+      renderLapList();
+      updateDisplayAndRing();
+      lapBtn.disabled = true;
+      initTheme();
+      // extra smooth draw on mount
+      setInterval(() => {
+        if (!running) drawProgressRing(currentElapsedMs);
+      }, 80);
+    })();
+  </script>
+</body>
+</html>
