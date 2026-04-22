@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>CodeForge AI · Pro Code Playground</title>
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Monaco Editor -->
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.min.css">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0a0f1c;
+      --bg-secondary: #0f1629;
+      --glass-bg: rgba(18, 28, 46, 0.75);
+      --glass-border: rgba(75, 130, 255, 0.2);
+      --accent: #3b82f6;
+      --accent-glow: #1e3a8a;
+      --text-primary: #eef2ff;
+      --text-secondary: #9ab3ff;
+      --shadow-heavy: 0 25px 40px -12px rgba(0, 0, 0, 0.7);
+      --skeleton-shine: rgba(255,255,255,0.05);
+    }
+    body.light {
+      --bg-primary: #f5f7fc;
+      --bg-secondary: #ffffff;
+      --glass-bg: rgba(255, 255, 255, 0.7);
+      --glass-border: rgba(59,130,246,0.25);
+      --accent: #2563eb;
+      --text-primary: #0b1e3a;
+      --text-secondary: #334155;
+      --shadow-heavy: 0 20px 35px -8px rgba(0,0,0,0.1);
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      margin: 0;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.2s;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Layout structure */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--glass-border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 30;
+    }
+    .logo { font-weight: 700; font-size: 1.6rem; background: linear-gradient(145deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .header-actions { display: flex; gap: 10px; }
+    .btn {
+      background: rgba(59,130,246,0.15);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover { background: var(--accent); color: white; transform: scale(1.02); box-shadow: 0 0 15px var(--accent-glow); }
+    .btn:active { transform: scale(0.97); }
+    
+    /* Main workspace */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    /* Editors panel (left) */
+    .editors-panel {
+      width: 40%;
+      min-width: 380px;
+      display: flex;
+      flex-direction: column;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid var(--glass-border);
+      transition: transform 0.25s;
+    }
+    .editor-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--glass-border);
+      padding: 6px 12px 0;
+      gap: 4px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 12px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 12px 12px 0 0;
+      transition: 0.2s;
+      backdrop-filter: blur(4px);
+    }
+    .tab-btn.active { background: var(--accent); color: white; box-shadow: 0 -4px 8px rgba(0,0,0,0.1); }
+    .editor-container {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+    .monaco-editor-frame { width: 100%; height: 100%; border: none; }
+    
+    /* Preview panel (right) */
+    .preview-panel {
+      width: 35%;
+      display: flex;
+      flex-direction: column;
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      border-right: 1px solid var(--glass-border);
+    }
+    .preview-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--glass-border);
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+    .preview-iframe {
+      flex: 1;
+      width: 100%;
+      background: white;
+      border: none;
+    }
+    body.light .preview-iframe { background: #f9f9ff; }
+    
+    /* AI assistant panel (right side) */
+    .ai-panel {
+      width: 25%;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid var(--glass-border);
+      padding: 16px 12px;
+    }
+    .ai-header { font-weight: 700; margin-bottom: 12px; display: flex; gap: 12px; }
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .chat-bubble {
+      padding: 12px 14px;
+      border-radius: 20px 20px 20px 6px;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid var(--glass-border);
+      max-width: 90%;
+      align-self: flex-start;
+      backdrop-filter: blur(4px);
+      font-size: 0.9rem;
+      word-break: break-word;
+    }
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-radius: 20px 20px 6px 20px;
+    }
+    .ai-input-area {
+      display: flex;
+      gap: 8px;
+    }
+    .ai-input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 40px;
+      border: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.2);
+      color: var(--text-primary);
+      font-family: inherit;
+      outline: none;
+    }
+    .typing-indicator { display: flex; gap: 4px; padding: 8px; }
+    .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; } .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,100%{opacity:0.3; transform:scale(0.8);} 50%{opacity:1; transform:scale(1.2);} }
+    
+    /* skeleton */
+    .skeleton { background: linear-gradient(90deg, var(--skeleton-shine) 25%, rgba(100,150,255,0.1) 50%, var(--skeleton-shine) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 16px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    
+    /* resize handle */
+    .resize-handle { width: 6px; cursor: col-resize; background: transparent; transition: 0.1s; }
+    .resize-handle:hover { background: var(--accent); }
+    
+    .toast-msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 8px 24px; border-radius: 40px; box-shadow: var(--shadow-heavy); z-index: 999; opacity:0; transition:0.2s; pointer-events:none; }
+    .toast-msg.show { opacity:1; }
+    
+    @media (max-width: 900px) { .workspace { flex-direction: column; } .editors-panel, .preview-panel, .ai-panel { width: 100%; min-width: unset; } }
+  </style>
+</head>
+<body class="dark">
+  <header class="app-header">
+    <div class="logo"><i class="fas fa-cube" style="margin-right: 10px;"></i>CodeForge AI</div>
+    <div class="header-actions">
+      <button class="btn" id="saveProjectBtn"><i class="fas fa-save"></i> Save</button>
+      <button class="btn" id="loadProjectBtn"><i class="fas fa-folder-open"></i> Load</button>
+      <button class="btn" id="resetBtn"><i class="fas fa-undo-alt"></i> Reset</button>
+      <button class="btn" id="themeToggle"><i class="fas fa-moon"></i> Theme</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <!-- LEFT: Editors (Monaco) -->
+    <div class="editors-panel" id="editorsPanel">
+      <div class="editor-tabs">
+        <button class="tab-btn active" data-tab="html">HTML</button>
+        <button class="tab-btn" data-tab="css">CSS</button>
+        <button class="tab-btn" data-tab="js">JavaScript</button>
+      </div>
+      <div class="editor-container" id="editorContainer"></div>
+    </div>
+    <div class="resize-handle" id="resizeHandle1"></div>
+    
+    <!-- MIDDLE: Live Preview -->
+    <div class="preview-panel" id="previewPanel">
+      <div class="preview-header">
+        <span><i class="fas fa-play"></i> Live Preview</span>
+        <button class="btn" id="refreshPreviewBtn" style="padding:4px 12px;"><i class="fas fa-sync-alt"></i> Run</button>
+      </div>
+      <iframe class="preview-iframe" id="previewFrame" title="output" sandbox="allow-scripts allow-modals allow-forms allow-same-origin"></iframe>
+    </div>
+    <div class="resize-handle" id="resizeHandle2"></div>
+    
+    <!-- RIGHT: AI Assistant -->
+    <div class="ai-panel" id="aiPanel">
+      <div class="ai-header"><i class="fas fa-robot" style="color:var(--accent);"></i> AI Assistant · <span style="font-size:0.8rem;">gpt-mini</span></div>
+      <div class="chat-history" id="chatHistory">
+        <div class="chat-bubble">👋 I'm your coding assistant. Ask me to generate, fix, or explain code.</div>
+      </div>
+      <div id="typingIndicator" class="typing-indicator" style="display:none;"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="ai-input-area">
+        <input type="text" class="ai-input" id="aiPrompt" placeholder="e.g., Create a responsive navbar...">
+        <button class="btn" id="sendPromptBtn" style="padding:12px 18px;"><i class="fas fa-paper-plane"></i></button>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn" id="insertCodeBtn" style="flex:1;"><i class="fas fa-code"></i> Insert</button>
+        <button class="btn" id="replaceCodeBtn" style="flex:1;"><i class="fas fa-arrow-right"></i> Replace</button>
+        <button class="btn" id="explainBtn" style="flex:1;"><i class="fas fa-question"></i> Explain</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast-msg" id="toast">Copied!</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script>
+    (function(){
+      "use strict";
+      
+      // ---------- STATE ----------
+      let currentTab = 'html';
+      let editors = { html: null, css: null, js: null };
+      let lastAiResponse = '';
+      let debounceTimer;
+      const previewFrame = document.getElementById('previewFrame');
+      const chatHistory = document.getElementById('chatHistory');
+      const typingIndicator = document.getElementById('typingIndicator');
+      const toast = document.getElementById('toast');
+      
+      // Default starter code
+      const defaultCode = {
+        html: `<h1>Hello CodeForge 🚀</h1>\n<p>Edit HTML, CSS, JS — preview updates live.</p>`,
+        css: `body { font-family: system-ui; padding: 2rem; background: linear-gradient(145deg, #f0f4ff, #e6eeff); color:#0b1e3a; }\nh1 { color: #2563eb; }`,
+        js: `console.log('✨ Welcome to CodeForge AI!');`
+      };
+      
+      // Load saved or default
+      let currentCode = JSON.parse(localStorage.getItem('codeforge_project')) || {...defaultCode};
+      
+      // ---------- MONACO SETUP ----------
+      require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+      require(['vs/editor/editor.main'], function() {
+        // Create three editors (only one visible at a time)
+        const container = document.getElementById('editorContainer');
+        
+        editors.html = monaco.editor.create(container, {
+          value: currentCode.html,
+          language: 'html',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          fontSize: 14,
+          fontFamily: 'JetBrains Mono, monospace',
+          minimap: { enabled: false },
+        });
+        editors.css = monaco.editor.create(container, {
+          value: currentCode.css,
+          language: 'css',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          fontSize: 14,
+          fontFamily: 'JetBrains Mono, monospace',
+          minimap: { enabled: false },
+        });
+        editors.js = monaco.editor.create(container, {
+          value: currentCode.js,
+          language: 'javascript',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          fontSize: 14,
+          fontFamily: 'JetBrains Mono, monospace',
+          minimap: { enabled: false },
+        });
+        
+        // Show only HTML initially
+        editors.css.getDomNode().style.display = 'none';
+        editors.js.getDomNode().style.display = 'none';
+        
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTab = tab;
+            editors.html.getDomNode().style.display = tab==='html' ? '' : 'none';
+            editors.css.getDomNode().style.display = tab==='css' ? '' : 'none';
+            editors.js.getDomNode().style.display = tab==='js' ? '' : 'none';
+            if(tab==='html') editors.html.focus();
+            else if(tab==='css') editors.css.focus();
+            else editors.js.focus();
+          });
+        });
+        
+        // Update preview with debounce
+        function updatePreview() {
+          const html = editors.html.getValue();
+          const css = editors.css.getValue();
+          const js = editors.js.getValue();
+          const doc = `
+            <!DOCTYPE html>
+            <html><head><meta charset="UTF-8"><style>${css}</style></head>
+            <body>${html}<script>${js}<\/script></body>
+            </html>
+          `;
+          const blob = new Blob([doc], { type: 'text/html' });
+          previewFrame.src = URL.createObjectURL(blob);
+        }
+        
+        const debouncedUpdate = () => {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(updatePreview, 350);
+        };
+        
+        editors.html.onDidChangeModelContent(debouncedUpdate);
+        editors.css.onDidChangeModelContent(debouncedUpdate);
+        editors.js.onDidChangeModelContent(debouncedUpdate);
+        setTimeout(updatePreview, 200);
+        
+        // Theme sync
+        window.syncEditorTheme = (isDark) => {
+          const theme = isDark ? 'vs-dark' : 'vs';
+          monaco.editor.setTheme(theme);
+        };
+        syncEditorTheme(true);
+        
+        // Expose editors for AI actions
+        window.getEditorContent = (lang) => editors[lang]?.getValue() || '';
+        window.setEditorContent = (lang, content) => { if(editors[lang]) { editors[lang].setValue(content); } };
+      });
+      
+      // ---------- AI MOCK (simulate OpenAI) ----------
+      async function mockAIResponse(prompt) {
+        typingIndicator.style.display = 'flex';
+        await new Promise(r => setTimeout(r, 900 + Math.random()*600));
+        typingIndicator.style.display = 'none';
+        
+        const lower = prompt.toLowerCase();
+        if (lower.includes('navbar') || lower.includes('responsive')) {
+          return `/* Responsive navbar */\n<nav style="display:flex; gap:1rem; background:#1e293b; padding:1rem;">\n  <a href="#" style="color:white;">Home</a>\n  <a href="#" style="color:white;">About</a>\n</nav>`;
+        } else if (lower.includes('fix') || lower.includes('css')) {
+          return `/* Improved flex container */\n.container {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}`;
+        } else if (lower.includes('explain')) {
+          return `📘 The selected code uses standard JavaScript event listeners. It's efficient and follows best practices.`;
+        } else {
+          return `✨ Here's a modern card component:\n<div style="border-radius:24px; padding:2rem; background:white; box-shadow:0 20px 30px rgba(0,0,0,0.1);">Card</div>`;
+        }
+      }
+      
+      // Append chat bubble
+      function addChatMessage(content, isUser = false) {
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${isUser ? 'user' : ''}`;
+        bubble.textContent = content;
+        chatHistory.appendChild(bubble);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        return bubble;
+      }
+      
+      async function handlePrompt() {
+        const input = document.getElementById('aiPrompt');
+        const prompt = input.value.trim();
+        if(!prompt) return;
+        addChatMessage(prompt, true);
+        input.value = '';
+        const response = await mockAIResponse(prompt);
+        lastAiResponse = response;
+        addChatMessage(response);
+        showToast('AI responded');
+      }
+      
+      // Insert / Replace / Explain
+      function insertCodeToActiveEditor() {
+        if(!lastAiResponse) { showToast('No AI response yet'); return; }
+        const editor = editors[currentTab];
+        if(!editor) return;
+        const selection = editor.getSelection();
+        const id = { range: selection, text: lastAiResponse };
+        editor.executeEdits('ai-insert', [id]);
+        showToast('Inserted into ' + currentTab);
+      }
+      function replaceCodeInActiveEditor() {
+        if(!lastAiResponse) return;
+        if(editors[currentTab]) {
+          editors[currentTab].setValue(lastAiResponse);
+          showToast('Replaced ' + currentTab);
+        }
+      }
+      function explainSelection() {
+        const editor = editors[currentTab];
+        const selection = editor.getSelection();
+        const selectedText = editor.getModel().getValueInRange(selection) || 'No selection';
+        addChatMessage(`Explain: ${selectedText.substring(0,60)}...`, true);
+        mockAIResponse('explain ' + selectedText).then(resp => {
+          lastAiResponse = resp;
+          addChatMessage(resp);
+        });
+      }
+      
+      // Save / Load / Reset
+      function saveProject() {
+        const project = {
+          html: editors.html?.getValue() || '',
+          css: editors.css?.getValue() || '',
+          js: editors.js?.getValue() || ''
+        };
+        localStorage.setItem('codeforge_project', JSON.stringify(project));
+        showToast('Project saved to localStorage');
+      }
+      function loadProject() {
+        const saved = localStorage.getItem('codeforge_project');
+        if(saved) {
+          const p = JSON.parse(saved);
+          if(editors.html) editors.html.setValue(p.html);
+          if(editors.css) editors.css.setValue(p.css);
+          if(editors.js) editors.js.setValue(p.js);
+          showToast('Project loaded');
+        } else { showToast('No saved project'); }
+      }
+      function resetProject() {
+        if(editors.html) editors.html.setValue(defaultCode.html);
+        if(editors.css) editors.css.setValue(defaultCode.css);
+        if(editors.js) editors.js.setValue(defaultCode.js);
+        showToast('Reset to default');
+      }
+      
+      function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
+      
+      // Theme toggle
+      const themeToggle = document.getElementById('themeToggle');
+      let isDark = true;
+      themeToggle.addEventListener('click', ()=>{
+        isDark = !isDark;
+        document.body.classList.toggle('light', !isDark);
+        document.body.classList.toggle('dark', isDark);
+        themeToggle.innerHTML = isDark ? '<i class="fas fa-moon"></i> Dark' : '<i class="fas fa-sun"></i> Light';
+        if(window.syncEditorTheme) syncEditorTheme(isDark);
+        localStorage.setItem('codeforge_theme', isDark?'dark':'light');
+      });
+      
+      // Resize panels (simple drag)
+      function initResize() {
+        const handle1 = document.getElementById('resizeHandle1');
+        const handle2 = document.getElementById('resizeHandle2');
+        const leftPanel = document.getElementById('editorsPanel');
+        const midPanel = document.getElementById('previewPanel');
+        const rightPanel = document.getElementById('aiPanel');
+        let isResizing = false, currentHandle;
+        const onMouseMove = (e) => {
+          if(!isResizing) return;
+          const containerWidth = document.querySelector('.workspace').clientWidth;
+          if(currentHandle === handle1) {
+            const newLeftWidth = Math.max(280, Math.min(containerWidth*0.6, e.clientX));
+            leftPanel.style.width = newLeftWidth + 'px';
+            midPanel.style.width = (containerWidth - newLeftWidth - rightPanel.offsetWidth) + 'px';
+          } else {
+            const newMidWidth = e.clientX - leftPanel.offsetWidth;
+            midPanel.style.width = Math.max(220, newMidWidth) + 'px';
+          }
+        };
+        handle1.addEventListener('mousedown', (e)=>{ isResizing=true; currentHandle=handle1; e.preventDefault(); });
+        handle2.addEventListener('mousedown', (e)=>{ isResizing=true; currentHandle=handle2; e.preventDefault(); });
+        window.addEventListener('mouseup', ()=> { isResizing=false; });
+        window.addEventListener('mousemove', onMouseMove);
+      }
+      
+      // Initialize
+      window.addEventListener('load', ()=>{
+        const savedTheme = localStorage.getItem('codeforge_theme');
+        if(savedTheme === 'light') { document.body.classList.add('light'); document.body.classList.remove('dark'); isDark=false; themeToggle.innerHTML='<i class="fas fa-sun"></i> Light'; if(window.syncEditorTheme) syncEditorTheme(false); }
+        
+        document.getElementById('sendPromptBtn').addEventListener('click', handlePrompt);
+        document.getElementById('aiPrompt').addEventListener('keypress', (e)=> { if(e.key==='Enter') handlePrompt(); });
+        document.getElementById('insertCodeBtn').addEventListener('click', insertCodeToActiveEditor);
+        document.getElementById('replaceCodeBtn').addEventListener('click', replaceCodeInActiveEditor);
+        document.getElementById('explainBtn').addEventListener('click', explainSelection);
+        document.getElementById('saveProjectBtn').addEventListener('click', saveProject);
+        document.getElementById('loadProjectBtn').addEventListener('click', loadProject);
+        document.getElementById('resetBtn').addEventListener('click', resetProject);
+        document.getElementById('refreshPreviewBtn').addEventListener('click', ()=> { if(editors.html) { clearTimeout(debounceTimer); updatePreview(); } });
+        
+        initResize();
+        // force preview update
+        setTimeout(()=>{ if(editors.html) updatePreview(); }, 300);
+      });
+      
+      function updatePreview() {
+        if(!editors.html) return;
+        const html = editors.html.getValue();
+        const css = editors.css.getValue();
+        const js = editors.js.getValue();
+        const doc = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
+        previewFrame.srcdoc = doc;
+      }
+    })();
+  </script>
+</body>
+</html>
