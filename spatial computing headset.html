@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Orbital Core X1 | Immersive 3D Product Launch</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <!-- Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background-color: #07070F;
+            color: #FFFFFF;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            outline: none;
+        }
+
+        /* UI Overlay - Premium Glassmorphism with perfect contrast */
+        .ui-container {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 9%;
+            position: relative;
+            pointer-events: auto;
+        }
+
+        /* Premium card styling with high readability */
+        .hero-card, .features-card, .cta-card, .specs-card {
+            backdrop-filter: blur(24px);
+            background: rgba(8, 8, 18, 0.82);
+            border-radius: 2rem;
+            padding: 2.8rem;
+            max-width: 680px;
+            border: 1px solid rgba(120, 130, 255, 0.35);
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(120, 130, 255, 0.15) inset;
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1), box-shadow 0.4s ease;
+        }
+
+        .hero-card:hover, .features-card:hover, .cta-card:hover, .specs-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 40px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(120, 130, 255, 0.4) inset;
+            background: rgba(18, 18, 35, 0.88);
+        }
+
+        /* Light mode perfect contrast */
+        body.light-mode .hero-card,
+        body.light-mode .features-card,
+        body.light-mode .cta-card,
+        body.light-mode .specs-card {
+            background: rgba(245, 247, 255, 0.92);
+            border: 1px solid rgba(80, 88, 220, 0.5);
+            color: #0A0A1A;
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-mode .hero-card p,
+        body.light-mode .features-card p,
+        body.light-mode .cta-card p,
+        body.light-mode .specs-card p {
+            color: #1A1A2E;
+        }
+
+        body.light-mode .badge {
+            background: rgba(80, 88, 200, 0.2);
+            color: #2D3A8C;
+            border-color: rgba(80, 88, 200, 0.4);
+        }
+
+        body.light-mode .feature-item {
+            background: rgba(255, 255, 255, 0.65);
+            border-color: rgba(80, 88, 200, 0.3);
+        }
+
+        body.light-mode .feature-item p {
+            color: #2A2A3A;
+        }
+
+        body.light-mode .spec-item {
+            background: rgba(80, 88, 200, 0.12);
+        }
+
+        h1 {
+            font-size: clamp(3.2rem, 7vw, 5.8rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #FFFFFF, #B0B8FF, #8A9AFF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1.2rem;
+        }
+
+        h2 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #E0E4FF, #FFFFFF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(120, 130, 255, 0.25);
+            backdrop-filter: blur(8px);
+            padding: 0.35rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 1.2rem;
+            border: 1px solid rgba(120, 130, 255, 0.5);
+            color: #C5CEFF;
+            text-transform: uppercase;
+        }
+
+        p {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            font-weight: 400;
+            color: #E8EAF5;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin-top: 1rem;
+        }
+
+        .feature-item {
+            flex: 1;
+            min-width: 140px;
+            background: rgba(30, 35, 55, 0.6);
+            padding: 1.2rem;
+            border-radius: 1.2rem;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(120, 130, 255, 0.25);
+        }
+
+        .feature-item:hover {
+            background: rgba(70, 80, 150, 0.6);
+            transform: translateY(-4px) scale(1.02);
+            border-color: rgba(120, 130, 255, 0.7);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .feature-item h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .feature-item p {
+            font-size: 0.8rem;
+            margin-bottom: 0;
+            opacity: 0.85;
+        }
+
+        /* Specs grid */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1.2rem;
+            margin: 1.5rem 0 0.5rem;
+        }
+
+        .spec-item {
+            background: rgba(20, 25, 45, 0.7);
+            border-radius: 1rem;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid rgba(120, 130, 255, 0.2);
+            transition: all 0.2s;
+        }
+
+        .spec-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #A5B0FF;
+            display: block;
+        }
+
+        .spec-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        button {
+            pointer-events: auto;
+            background: linear-gradient(135deg, #8A9AFF, #5B6BEE);
+            border: none;
+            padding: 0.9rem 2.2rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            margin-top: 0.8rem;
+            box-shadow: 0 4px 15px rgba(91, 107, 238, 0.35);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 28px rgba(91, 107, 238, 0.6);
+            background: linear-gradient(135deg, #9EACFF, #6B7BEE);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 100;
+            background: rgba(20, 20, 40, 0.85);
+            backdrop-filter: blur(16px);
+            border-radius: 50px;
+            padding: 12px 24px;
+            border: 1px solid rgba(120, 130, 255, 0.5);
+            cursor: pointer;
+            pointer-events: auto;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(70, 80, 150, 0.9);
+            transform: scale(1.02);
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #07070F;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1.2s ease;
+        }
+
+        .loader-progress {
+            width: 300px;
+            height: 3px;
+            background: rgba(120, 130, 255, 0.25);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 1.5rem;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #8A9AFF, #C5CEFF);
+            transition: width 0.2s ease;
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            letter-spacing: 3px;
+            margin-top: 1rem;
+            color: #A5B0FF;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.7;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+        }
+
+        .scroll-wheel {
+            width: 26px;
+            height: 42px;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .scroll-wheel::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 8px;
+            background: white;
+            border-radius: 2px;
+            animation: scrollAnim 1.5s infinite;
+        }
+
+        @keyframes scrollAnim {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(15px); }
+        }
+
+        @media (max-width: 768px) {
+            section { padding: 0 5%; }
+            .hero-card, .features-card, .cta-card, .specs-card { padding: 1.8rem; }
+            .feature-grid { flex-direction: column; }
+            .specs-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+    <div style="text-align: center;">
+        <div style="font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg,#FFFFFF,#A5B0FF); -webkit-background-clip:text; background-clip:text; color:transparent;">ORBITAL CORE</div>
+        <div class="loader-progress"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="loading-text" id="loadingPercent">0%</div>
+        <div style="margin-top: 20px; font-size: 0.75rem; opacity: 0.5;">loading neural interface</div>
+    </div>
+</div>
+
+<button class="theme-toggle" id="themeToggle">🌙 Dark Mode</button>
+
+<div class="ui-container">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-card">
+            <div class="badge">✦ FLAGSHIP 2026 ✦</div>
+            <h1>Orbital <br>Core X1</h1>
+            <p>The world's most advanced spatial computing headset. 8K micro-OLED displays, real-time ray tracing, and full-body neural haptics. Redefining human-computer interaction.</p>
+            <div class="specs-grid" style="margin-top: 0.5rem;">
+                <div class="spec-item"><span class="spec-value">8K</span><span class="spec-label">Per Eye</span></div>
+                <div class="spec-item"><span class="spec-value">130°</span><span class="spec-label">FOV</span></div>
+                <div class="spec-item"><span class="spec-value">120Hz</span><span class="spec-label">Refresh</span></div>
+                <div class="spec-item"><span class="spec-value">5ms</span><span class="spec-label">Motion-to-Photon</span></div>
+            </div>
+            <button id="exploreBtn">Explore experience →</button>
+        </div>
+        <div class="scroll-indicator"><div class="scroll-wheel"></div><span>SCROLL TO IMMERSE</span></div>
+    </section>
+
+    <!-- Technical Specs Section - New -->
+    <section class="specs-section">
+        <div class="specs-card">
+            <div class="badge">🔬 TECHNICAL ARCHITECTURE</div>
+            <h2>Engineering beyond limits</h2>
+            <p>Powered by the custom R2 neural chip, delivering 18 TOPS of AI performance for real-time scene reconstruction and eye-tracked foveated rendering.</p>
+            <div class="specs-grid">
+                <div class="spec-item"><span class="spec-value">12GB</span><span class="spec-label">Unified Memory</span></div>
+                <div class="spec-item"><span class="spec-value">512GB</span><span class="spec-label">Storage</span></div>
+                <div class="spec-item"><span class="spec-value">Wi-Fi 7</span><span class="spec-label">Connectivity</span></div>
+                <div class="spec-item"><span class="spec-value">IP68</span><span class="spec-label">Dust/Water</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="features-card">
+            <div class="badge">⚡ CORE INNOVATIONS</div>
+            <h2>Immersive intelligence</h2>
+            <p>Revolutionary features that blur the line between physical and digital worlds.</p>
+            <div class="feature-grid">
+                <div class="feature-item"><div class="feature-icon">🌀</div><h3>Holographic Waveguide</h3><p>Zero distortion, true-to-life colors</p></div>
+                <div class="feature-item"><div class="feature-icon">🔊</div><h3>Spatial Audio Pro</h3><p>Object-aware 3D sound</p></div>
+                <div class="feature-item"><div class="feature-icon">👁️</div><h3>Precision Eye Tracking</h3><p>Latency-free foveated rendering</p></div>
+                <div class="feature-item"><div class="feature-icon">⚡</div><h3>Neural Interface</h3><p>Thought-powered navigation</p></div>
+                <div class="feature-item"><div class="feature-icon">💎</div><h3>Titanium Alloy</h3><p>Ultra-lightweight & durable</p></div>
+                <div class="feature-item"><div class="feature-icon">🔋</div><h3>6-Hour Battery</h3><p>Hot-swappable modules</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-card">
+            <div class="badge">🎯 LIMITED AVAILABILITY</div>
+            <h2>Reserve your future</h2>
+            <p>First batch includes Orbital Core charging dock, premium travel case, and lifetime developer access. Shipping begins Q1 2026.</p>
+            <div class="specs-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="spec-item"><span class="spec-value">$1,299</span><span class="spec-label">Starting at</span></div>
+                <div class="spec-item"><span class="spec-value">24 mo</span><span class="spec-label">Warranty</span></div>
+            </div>
+            <button id="ctaBtn">Pre-order now →</button>
+        </div>
+    </section>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+    import gsap from 'https://cdn.skypack.dev/gsap';
+    import ScrollTrigger from 'https://cdn.skypack.dev/gsap/ScrollTrigger';
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    // --- DOM elements
+    const loadingScreen = document.getElementById('loadingScreen');
+    const progressFill = document.getElementById('progressFill');
+    const loadingPercent = document.getElementById('loadingPercent');
+    const themeToggle = document.getElementById('themeToggle');
+
+    // --- Scene setup with background stars/rotating environment
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07070F);
+    scene.fog = new THREE.FogExp2(0x07070F, 0.006);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(4.5, 2.3, 5.8);
+    camera.lookAt(0, 0.2, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setClearColor(0x07070F, 1);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.rotateSpeed = 1.2;
+    controls.zoomSpeed = 1.0;
+    controls.enableZoom = true;
+    controls.enablePan = false;
+    controls.target.set(0, 0.25, 0);
+
+    // --- Rotating Background: Particle starfield & Nebula ring
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 1800;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+        starPositions[i*3] = (Math.random() - 0.5) * 500;
+        starPositions[i*3+1] = (Math.random() - 0.5) * 300;
+        starPositions[i*3+2] = (Math.random() - 0.5) * 150 - 70;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.25, transparent: true, opacity: 0.7 });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+    
+    // Add colorful distant particles
+    const colorStarGeo = new THREE.BufferGeometry();
+    const colorCount = 800;
+    const colorPositions = new Float32Array(colorCount * 3);
+    const colorColors = new Float32Array(colorCount * 3);
+    for (let i = 0; i < colorCount; i++) {
+        colorPositions[i*3] = (Math.random() - 0.5) * 400;
+        colorPositions[i*3+1] = (Math.random() - 0.5) * 250;
+        colorPositions[i*3+2] = (Math.random() - 0.5) * 120 - 40;
+        colorColors[i*3] = Math.random() * 0.8 + 0.2;
+        colorColors[i*3+1] = Math.random() * 0.6 + 0.3;
+        colorColors[i*3+2] = Math.random() * 1.0;
+    }
+    colorStarGeo.setAttribute('position', new THREE.BufferAttribute(colorPositions, 3));
+    colorStarGeo.setAttribute('color', new THREE.BufferAttribute(colorColors, 3));
+    const colorStarMat = new THREE.PointsMaterial({ size: 0.18, vertexColors: true, transparent: true, opacity: 0.6 });
+    const colorStars = new THREE.Points(colorStarGeo, colorStarMat);
+    scene.add(colorStars);
+    
+    // Floating glowing ring (nebula effect)
+    const ringGeo = new THREE.TorusGeometry(6.5, 0.08, 64, 400);
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0x6A7AFF, emissive: 0x2A3AAA, emissiveIntensity: 0.35, transparent: true, opacity: 0.5 });
+    const nebulaRing = new THREE.Mesh(ringGeo, ringMat);
+    nebulaRing.rotation.x = Math.PI / 2.8;
+    nebulaRing.rotation.z = 0.5;
+    scene.add(nebulaRing);
+    
+    const ringGeo2 = new THREE.TorusGeometry(5.2, 0.05, 64, 400);
+    const ringMat2 = new THREE.MeshStandardMaterial({ color: 0xFF88AA, emissive: 0x551133, emissiveIntensity: 0.25, transparent: true });
+    const nebulaRing2 = new THREE.Mesh(ringGeo2, ringMat2);
+    nebulaRing2.rotation.x = Math.PI / 2.2;
+    nebulaRing2.rotation.z = -0.3;
+    scene.add(nebulaRing2);
+
+    // --- Lighting System
+    const ambientLight = new THREE.AmbientLight(0x3A3A60, 0.55);
+    scene.add(ambientLight);
+    const keyLight = new THREE.DirectionalLight(0xFFFFFF, 1.3);
+    keyLight.position.set(3.5, 5, 2.5);
+    keyLight.castShadow = true;
+    keyLight.receiveShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    scene.add(keyLight);
+    const fillWarm = new THREE.PointLight(0xCC9966, 0.5);
+    fillWarm.position.set(0, -1.2, 1.5);
+    scene.add(fillWarm);
+    const rimCool = new THREE.PointLight(0x6688FF, 0.8);
+    rimCool.position.set(-2.2, 2, -2.8);
+    scene.add(rimCool);
+    const backAccent = new THREE.PointLight(0xAA88FF, 0.55);
+    backAccent.position.set(1.5, 1.5, -3.2);
+    scene.add(backAccent);
+    const hemiLight = new THREE.HemisphereLight(0x6B6B9B, 0x2A2A3A, 0.6);
+    scene.add(hemiLight);
+    const dynamicLight = new THREE.PointLight(0x8A9AFF, 0.65);
+    dynamicLight.position.set(1.2, 1.3, 2.2);
+    scene.add(dynamicLight);
+    
+    // Environment map
+    const cubeTextureLoader = new THREE.CubeTextureLoader();
+    cubeTextureLoader.setPath('https://threejs.org/examples/textures/cube/SwedishRoyal/');
+    const envMap = cubeTextureLoader.load(['px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg']);
+    scene.environment = envMap;
+
+    // --- Model loading
+    let model = null;
+    let loaded = false;
+    
+    function updateLoadProgress(percent) {
+        const val = Math.min(100, Math.floor(percent * 100));
+        progressFill.style.width = `${val}%`;
+        loadingPercent.innerText = `${val}%`;
+        if (val >= 100) {
+            setTimeout(() => {
+                gsap.to(loadingScreen, { opacity: 0, duration: 1, onComplete: () => { loadingScreen.style.display = 'none'; } });
+            }, 400);
+        }
+    }
+    
+    let fakeProgress = 0;
+    const progressInterval = setInterval(() => {
+        if (!loaded && fakeProgress < 0.85) {
+            fakeProgress += 0.06;
+            updateLoadProgress(fakeProgress);
+        } else if (loaded) {
+            updateLoadProgress(1);
+            clearInterval(progressInterval);
+        }
+    }, 120);
+    
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/');
+    loader.setDRACOLoader(dracoLoader);
+    
+    loader.load('https://threejs.org/examples/models/gltf/FlightHelmet/glTF/FlightHelmet.gltf', (gltf) => {
+        model = gltf.scene;
+        model.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.material) {
+                    child.material.roughness = 0.2;
+                    child.material.metalness = 0.9;
+                    child.material.envMapIntensity = 1.35;
+                }
+            }
+        });
+        model.position.set(0, 0.15, 0);
+        model.scale.set(1.25, 1.25, 1.25);
+        scene.add(model);
+        loaded = true;
+        clearInterval(progressInterval);
+        updateLoadProgress(1);
+        gsap.from(model.scale, { x: 1.1, y: 1.1, z: 1.1, duration: 1, ease: "back.out(0.3)" });
+    }, undefined, () => {
+        const fallbackGroup = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8A9AFF, metalness: 0.92, roughness: 0.18 });
+        const mainBody = new THREE.Mesh(new THREE.SphereGeometry(0.68, 64, 64), bodyMat);
+        const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.07, 64, 200), new THREE.MeshStandardMaterial({ color: 0xFFAA66, metalness: 0.95, roughness: 0.12 }));
+        ring1.rotation.x = Math.PI / 2;
+        const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.05, 64, 200), new THREE.MeshStandardMaterial({ color: 0x66CCFF, metalness: 0.85, roughness: 0.2 }));
+        ring2.rotation.z = 0.7;
+        ring2.rotation.x = 0.5;
+        fallbackGroup.add(mainBody, ring1, ring2);
+        fallbackGroup.position.set(0, 0.2, 0);
+        model = fallbackGroup;
+        scene.add(model);
+        loaded = true;
+        clearInterval(progressInterval);
+        updateLoadProgress(1);
+    });
+    
+    // --- Scroll-based storytelling (model rotation + camera)
+    let scrollTimeline = gsap.timeline({
+        scrollTrigger: { trigger: "body", start: "top top", end: "bottom bottom", scrub: 1.5, invalidateOnRefresh: true }
+    });
+    scrollTimeline.to({}, {
+        duration: 0.001,
+        onUpdate: function() {
+            if (!model) return;
+            const progress = ScrollTrigger.getScrollPercent() || 0;
+            if (model) model.rotation.y = progress * Math.PI * 2.1;
+            let camX = 4.5 - progress * 3.2;
+            let camY = 2.3 + progress * 1.1;
+            let camZ = 5.8 - progress * 3.8;
+            if (progress > 0.6) { const extra = (progress - 0.6) / 0.4; camZ = 2.6 - extra * 0.9; camX = 1.5 + extra * 0.2; camY = 2.7 - extra * 0.8; }
+            if (progress > 0.85) { camZ = 2.0; camX = 1.2; camY = 2.0; }
+            camera.position.x = camX; camera.position.y = camY; camera.position.z = camZ;
+            controls.target.set(0, 0.3, 0);
+            controls.update();
+        }
+    });
+    
+    // --- Rotating Background Animation
+    let bgRotationSpeed = 0.002;
+    function animateBackground() {
+        requestAnimationFrame(animateBackground);
+        stars.rotation.y += 0.0008;
+        stars.rotation.x += 0.0003;
+        colorStars.rotation.y -= 0.0005;
+        colorStars.rotation.z += 0.0004;
+        nebulaRing.rotation.z += 0.002;
+        nebulaRing.rotation.y += 0.001;
+        nebulaRing2.rotation.x += 0.0015;
+        nebulaRing2.rotation.z -= 0.001;
+        
+        if (model && loaded && !ScrollTrigger.isScrolling()) {
+            model.position.y = 0.2 + Math.sin(Date.now() * 0.002) * 0.004;
+        }
+        dynamicLight.intensity = 0.6 + Math.sin(Date.now() * 0.0025) * 0.12;
+        rimCool.intensity = 0.7 + Math.sin(Date.now() * 0.002) * 0.1;
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animateBackground();
+    
+    // --- Cursor tilt
+    document.addEventListener('mousemove', (e) => {
+        if (!model || ScrollTrigger.isScrolling()) return;
+        const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        const mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+        gsap.to(model.rotation, { x: mouseY * 0.07, z: -mouseX * 0.05, duration: 1.2, ease: "power2.out", overwrite: true });
+    });
+    
+    // --- Theme toggle
+    let isDark = true;
+    themeToggle.addEventListener('click', () => {
+        isDark = !isDark;
+        if (isDark) {
+            scene.background.set(0x07070F); scene.fog.color.setHex(0x07070F);
+            document.body.classList.remove('light-mode');
+            themeToggle.innerHTML = '🌙 Dark Mode';
+        } else {
+            scene.background.set(0xE0E4F0); scene.fog.color.setHex(0xE0E4F0);
+            document.body.classList.add('light-mode');
+            themeToggle.innerHTML = '☀️ Light Mode';
+        }
+    });
+    
+    document.getElementById('exploreBtn')?.addEventListener('click', () => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' }));
+    document.getElementById('ctaBtn')?.addEventListener('click', () => alert('✨ Pre-order reserved! Welcome to the future.'));
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    setTimeout(() => { if(model) gsap.to(model.rotation, { y: 0.3, duration: 1.2, ease: "power2.inOut" }); }, 500);
+</script>
+</body>
+</html>
