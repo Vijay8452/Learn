@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Nexus Mission Control | Real‑Time Strategy Dashboard</title>
+  <!-- Font Awesome 6 for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 10%, #0a0f1e, #03050b);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      margin: 0;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* animated background gradient shift */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 40%, rgba(0, 255, 255, 0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 70%, rgba(138, 43, 226, 0.1) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+      animation: bgShift 18s infinite alternate ease-in-out;
+    }
+
+    @keyframes bgShift {
+      0% { opacity: 0.7; transform: scale(1); }
+      100% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .dashboard {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+
+    /* header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      backdrop-filter: blur(18px);
+      background: rgba(10, 20, 35, 0.45);
+      border: 1px solid rgba(0, 255, 255, 0.25);
+      border-radius: 2.5rem;
+      padding: 1rem 2.2rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(0, 180, 255, 0.3);
+      color: #e0f0ff;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-weight: 700;
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #a0f0ff, #6b8cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .status-pulse {
+      display: flex;
+      align-items: center;
+      gap: 1.8rem;
+    }
+
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #0ff;
+      border-radius: 50%;
+      box-shadow: 0 0 18px #0ff;
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.4); box-shadow: 0 0 28px cyan; }
+      100% { opacity: 0.6; transform: scale(0.8); }
+    }
+
+    /* grid layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.6rem;
+      align-items: start;
+    }
+
+    /* glass card widget */
+    .widget {
+      backdrop-filter: blur(20px);
+      background: rgba(18, 25, 45, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 2rem;
+      padding: 1.5rem 1.3rem;
+      box-shadow: 0 25px 45px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(0, 255, 200, 0.2);
+      transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+      color: #eef5ff;
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      will-change: transform, box-shadow;
+    }
+
+    .widget:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 32px 55px -8px #000000cc, 0 0 30px rgba(0, 180, 255, 0.7);
+      border-color: rgba(0, 255, 255, 0.6);
+    }
+
+    /* dimming layer for focus mode */
+    .dimmed {
+      opacity: 0.25;
+      filter: blur(1px);
+      transition: 0.3s ease;
+      pointer-events: none;
+    }
+
+    .widget.focused {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1.02);
+      z-index: 30;
+      border: 2px solid cyan;
+      box-shadow: 0 0 55px #00e0ff;
+      background: rgba(10, 25, 50, 0.8);
+      transition: 0.25s;
+      pointer-events: auto;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #b0f0ff;
+    }
+
+    .value-large {
+      font-size: 2.7rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #ffffff, #b0f0ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 120px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .progress-ring {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .extra-data {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+      margin-top: 0.2rem;
+      color: #aad0ff;
+      font-size: 0.9rem;
+    }
+
+    .widget.focused .extra-data {
+      max-height: 180px;
+      margin-top: 1rem;
+    }
+
+    .notification-toast {
+      position: fixed;
+      top: 25px;
+      right: 25px;
+      background: rgba(0, 20, 40, 0.85);
+      backdrop-filter: blur(25px);
+      border-left: 5px solid #ff4d6d;
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 1.2rem;
+      box-shadow: 0 20px 35px black;
+      z-index: 999;
+      animation: slideIn 0.4s ease;
+      font-weight: bold;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    button {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(0, 255, 255, 0.5);
+      color: #c0f0ff;
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      transition: 0.2s;
+      backdrop-filter: blur(10px);
+    }
+
+    button:hover {
+      background: rgba(0, 255, 200, 0.2);
+      transform: scale(1.05);
+      box-shadow: 0 0 18px cyan;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #1e2a44, #2b3b5c, #1e2a44);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 1rem;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200px 0; }
+      100% { background-position: 200px 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard" id="dashboard">
+  <div class="header">
+    <div class="logo"><i class="fas fa-satellite"></i> NEXUS<span style="font-weight:300;">//CTRL</span></div>
+    <div class="status-pulse">
+      <span><i class="fas fa-shield-alt"></i> SYS OK</span>
+      <div class="pulse-dot"></div>
+      <span id="liveTimestamp">--:--:--</span>
+    </div>
+  </div>
+
+  <!-- widget grid injected dynamically -->
+  <div class="grid" id="widgetGrid"></div>
+</div>
+
+<script>
+  (function() {
+    // ----- PERSISTENCE & STATE -----
+    const STORAGE_KEY = 'nexus_dash_layout';
+    
+    // Default widget definitions
+    const widgetDefs = [
+      { id: 'activeUsers', title: 'ACTIVE USERS', icon: 'fa-users', type: 'metric', value: 2341, unit: '' },
+      { id: 'cpuLoad', title: 'CPU LOAD', icon: 'fa-microchip', type: 'progress', value: 67, unit: '%' },
+      { id: 'networkTraffic', title: 'NETWORK (MBPS)', icon: 'fa-network-wired', type: 'line', value: 482, unit: '' },
+      { id: 'memoryUsage', title: 'MEMORY', icon: 'fa-memory', type: 'bar', value: 58, unit: '%' },
+      { id: 'systemHealth', title: 'SYSTEM HEALTH', icon: 'fa-heart-pulse', type: 'ring', value: 94, unit: '%' },
+      { id: 'requestsSec', title: 'REQUESTS/SEC', icon: 'fa-bolt', type: 'metric', value: 1842, unit: '' }
+    ];
+
+    // Live data store
+    let widgetData = {};
+    let focusWidgetId = null;
+    let widgetOrder = []; // store widget ids in order
+
+    // ----- INITIALIZE DATA -----
+    function initData() {
+      widgetDefs.forEach(def => {
+        widgetData[def.id] = {
+          ...def,
+          current: def.value,
+          history: Array(12).fill(def.value).map(v => v + (Math.random()*20-10)),
+        };
+      });
+      // load saved order or default
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === widgetDefs.length) {
+            widgetOrder = parsed;
+          } else {
+            widgetOrder = widgetDefs.map(d => d.id);
+          }
+        } catch (e) {
+          widgetOrder = widgetDefs.map(d => d.id);
+        }
+      } else {
+        widgetOrder = widgetDefs.map(d => d.id);
+      }
+    }
+
+    // ----- SIMULATION ENGINE -----
+    function simulateDataUpdate() {
+      const now = new Date();
+      document.getElementById('liveTimestamp').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+
+      Object.keys(widgetData).forEach(id => {
+        let item = widgetData[id];
+        let change = (Math.random() * 22) - 11; 
+        if (item.type === 'progress' || item.type === 'ring' || item.unit === '%') {
+          change = (Math.random() * 14) - 7;
+        }
+        let newVal = Math.round((item.current + change) * 10) / 10;
+        // keep within reasonable bounds
+        if (item.unit === '%') newVal = Math.min(100, Math.max(5, newVal));
+        else newVal = Math.max(20, newVal);
+        
+        item.current = newVal;
+        item.history.push(newVal);
+        if (item.history.length > 14) item.history.shift();
+      });
+
+      // random alert notification
+      if (Math.random() < 0.25) {
+        triggerRandomAlert();
+      }
+    }
+
+    function triggerRandomAlert() {
+      const alerts = [
+        { text: '⚠️ Traffic spike detected', color: '#ff914d' },
+        { text: '🔻 Memory pressure increasing', color: '#ff4d6d' },
+        { text: '✅ System performance restored', color: '#4dffb5' },
+        { text: '⚡ High throughput mode', color: '#ffd966' }
+      ];
+      const alert = alerts[Math.floor(Math.random() * alerts.length)];
+      showNotification(alert.text, alert.color);
+    }
+
+    function showNotification(message, borderColor = '#ff4d6d') {
+      const toast = document.createElement('div');
+      toast.className = 'notification-toast';
+      toast.style.borderLeftColor = borderColor;
+      toast.innerHTML = `<i class="fas fa-bell"></i> ${message}`;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = '0.3s';
+        setTimeout(() => toast.remove(), 400);
+      }, 2800);
+    }
+
+    // ----- RENDERING -----
+    const grid = document.getElementById('widgetGrid');
+
+    function renderAllWidgets() {
+      if (!grid) return;
+      grid.innerHTML = '';
+      widgetOrder.forEach(id => {
+        const w = widgetData[id];
+        if (!w) return;
+        const card = createWidgetElement(w);
+        grid.appendChild(card);
+      });
+      // after DOM update, draw charts
+      requestAnimationFrame(() => {
+        widgetOrder.forEach(id => drawChartForWidget(id));
+      });
+    }
+
+    function createWidgetElement(w) {
+      const div = document.createElement('div');
+      div.className = `widget ${focusWidgetId === w.id ? 'focused' : ''}`;
+      if (focusWidgetId && focusWidgetId !== w.id) div.classList.add('dimmed');
+      div.dataset.widgetId = w.id;
+      div.setAttribute('draggable', 'true');
+
+      div.innerHTML = `
+        <div class="widget-header">
+          <span><i class="fas ${w.icon}"></i> ${w.title}</span>
+          <i class="fas fa-expand" style="opacity:0.6;"></i>
+        </div>
+        <div class="value-large" id="val-${w.id}">${formatValue(w)}</div>
+        ${w.type === 'line' || w.type === 'bar' ? '<div class="chart-container"><canvas id="chart-'+w.id+'" width="200" height="100"></canvas></div>' : ''}
+        ${w.type === 'ring' ? '<div class="progress-ring"><canvas id="ring-'+w.id+'" width="90" height="90"></canvas></div>' : ''}
+        <div class="extra-data" id="extra-${w.id}">
+          <i class="fas fa-chart-line"></i> Trend: ${getTrend(w)} | Avg: ${avgHistory(w)}
+        </div>
+      `;
+
+      // event listeners
+      div.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        toggleFocus(w.id);
+      });
+
+      div.addEventListener('dragstart', handleDragStart);
+      div.addEventListener('dragover', (e) => e.preventDefault());
+      div.addEventListener('drop', handleDrop);
+      return div;
+    }
+
+    function formatValue(w) {
+      if (w.unit === '%') return `${Math.round(w.current)}%`;
+      return Math.round(w.current).toLocaleString();
+    }
+
+    function getTrend(w) {
+      if (w.history.length < 2) return 'stable';
+      const last = w.history[w.history.length-1];
+      const prev = w.history[w.history.length-2];
+      return last > prev ? '↗️ rising' : '↘️ falling';
+    }
+
+    function avgHistory(w) {
+      const sum = w.history.reduce((a,b)=>a+b,0);
+      return (sum/w.history.length).toFixed(1);
+    }
+
+    // ----- FOCUS MODE -----
+    function toggleFocus(id) {
+      if (focusWidgetId === id) {
+        focusWidgetId = null;
+      } else {
+        focusWidgetId = id;
+      }
+      applyFocusClasses();
+    }
+
+    function applyFocusClasses() {
+      document.querySelectorAll('.widget').forEach(el => {
+        const wid = el.dataset.widgetId;
+        el.classList.remove('focused', 'dimmed');
+        if (focusWidgetId) {
+          if (wid === focusWidgetId) {
+            el.classList.add('focused');
+          } else {
+            el.classList.add('dimmed');
+          }
+        }
+      });
+      // refresh extra data visibility
+    }
+
+    // ----- DRAG AND DROP (reorder) -----
+    let draggedId = null;
+
+    function handleDragStart(e) {
+      draggedId = e.currentTarget.dataset.widgetId;
+      e.dataTransfer.setData('text/plain', draggedId);
+      e.currentTarget.style.opacity = '0.4';
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const targetWidget = e.currentTarget;
+      const targetId = targetWidget.dataset.widgetId;
+      if (!draggedId || draggedId === targetId) {
+        draggedId = null;
+        return;
+      }
+      const fromIndex = widgetOrder.indexOf(draggedId);
+      const toIndex = widgetOrder.indexOf(targetId);
+      if (fromIndex !== -1 && toIndex !== -1) {
+        widgetOrder.splice(fromIndex, 1);
+        widgetOrder.splice(toIndex, 0, draggedId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(widgetOrder));
+        renderAllWidgets();
+      }
+      draggedId = null;
+      document.querySelectorAll('.widget').forEach(el => el.style.opacity = '');
+    }
+
+    // ----- CHART DRAWING (custom animated) -----
+    function drawChartForWidget(id) {
+      const w = widgetData[id];
+      if (!w) return;
+      if (w.type === 'line') {
+        const canvas = document.getElementById('chart-'+id);
+        if (!canvas) return;
+        drawLineChart(canvas, w.history);
+      } else if (w.type === 'bar') {
+        const canvas = document.getElementById('chart-'+id);
+        if (!canvas) return;
+        drawBarChart(canvas, w.history);
+      } else if (w.type === 'ring') {
+        const canvas = document.getElementById('ring-'+id);
+        if (!canvas) return;
+        drawRingChart(canvas, w.current, 100);
+      }
+    }
+
+    function drawLineChart(canvas, data) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth || 200;
+      const h = canvas.height = canvas.clientHeight || 100;
+      ctx.clearRect(0,0,w,h);
+      if (!data.length) return;
+      
+      const maxVal = Math.max(...data, 10);
+      const minVal = Math.min(...data, 0);
+      const range = maxVal - minVal || 1;
+      
+      ctx.beginPath();
+      ctx.strokeStyle = '#0ff';
+      ctx.lineWidth = 2.2;
+      ctx.shadowColor = '#0ff';
+      ctx.shadowBlur = 8;
+      
+      data.forEach((val, i) => {
+        const x = (i / (data.length-1)) * w;
+        const y = h - ((val - minVal) / range) * (h-15) - 5;
+        if (i===0) ctx.moveTo(x,y);
+        else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    function drawBarChart(canvas, data) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth || 200;
+      const h = canvas.height = canvas.clientHeight || 100;
+      ctx.clearRect(0,0,w,h);
+      const barWidth = (w / data.length) * 0.7;
+      data.forEach((val, i) => {
+        const x = i * (w/data.length) + 2;
+        const height = (val / 100) * (h-8);
+        ctx.fillStyle = '#b565ff';
+        ctx.shadowColor = '#b565ff';
+        ctx.shadowBlur = 7;
+        ctx.fillRect(x, h - height, barWidth, height);
+      });
+      ctx.shadowBlur = 0;
+    }
+
+    function drawRingChart(canvas, value, max) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width = 90;
+      canvas.height = 90;
+      const center = size/2;
+      const radius = 30;
+      ctx.clearRect(0,0,size,size);
+      
+      ctx.beginPath();
+      ctx.arc(center, center, radius, 0, 2*Math.PI);
+      ctx.strokeStyle = '#1e2a44';
+      ctx.lineWidth = 7;
+      ctx.stroke();
+      
+      const pct = Math.min(value/max, 1);
+      ctx.beginPath();
+      ctx.arc(center, center, radius, -Math.PI/2, -Math.PI/2 + pct*2*Math.PI);
+      ctx.strokeStyle = '#0ff';
+      ctx.lineWidth = 7;
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = '#0ff';
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 12px "Segoe UI"';
+      ctx.textAlign = 'center';
+      ctx.fillText(Math.round(value)+'%', center, center+5);
+    }
+
+    // ----- SKELETON LOADING SIMULATION -----
+    function showSkeletonThenData() {
+      grid.innerHTML = '';
+      widgetOrder.forEach(id => {
+        const skeleton = document.createElement('div');
+        skeleton.className = 'widget skeleton';
+        skeleton.style.height = '180px';
+        grid.appendChild(skeleton);
+      });
+      setTimeout(() => {
+        renderAllWidgets();
+      }, 700);
+    }
+
+    // ----- LIVE UPDATE CYCLE -----
+    function updateLiveValues() {
+      simulateDataUpdate();
+      widgetOrder.forEach(id => {
+        const w = widgetData[id];
+        const valEl = document.getElementById('val-'+id);
+        if (valEl) valEl.textContent = formatValue(w);
+        const extraEl = document.getElementById('extra-'+id);
+        if (extraEl) extraEl.innerHTML = `<i class="fas fa-chart-line"></i> Trend: ${getTrend(w)} | Avg: ${avgHistory(w)}`;
+        drawChartForWidget(id);
+      });
+    }
+
+    // ----- INIT -----
+    initData();
+    showSkeletonThenData();
+
+    setInterval(updateLiveValues, 1700);
+
+    // click outside to unfocus? optional: click on dashboard header
+    document.querySelector('.header').addEventListener('click', (e) => {
+      if (focusWidgetId) {
+        focusWidgetId = null;
+        applyFocusClasses();
+      }
+    });
+
+    // re-apply focus classes on any update
+    const origRender = renderAllWidgets;
+    window.renderAllWidgets = function() {
+      origRender();
+      applyFocusClasses();
+    };
+
+  })();
+</script>
+</body>
+</html>
