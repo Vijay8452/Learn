@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Digital Horizon | Immersive 3D World</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Inter', sans-serif;
+      background-color: #0a0a1a;
+    }
+    #info-panel {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      padding: 20px 32px;
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+      pointer-events: none;
+      z-index: 100;
+      max-width: 90vw;
+    }
+    #info-panel.active {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #info-title {
+      font-size: 1.8rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      margin: 0 0 8px;
+      text-shadow: 0 0 20px rgba(0,160,255,0.7);
+      color: #e0f0ff;
+    }
+    #info-description {
+      font-size: 1rem;
+      margin: 0;
+      opacity: 0.8;
+      font-weight: 300;
+      color: #ccddff;
+    }
+    #hint {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      padding: 8px 16px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 90;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .tooltip {
+      position: fixed;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.2s;
+      opacity: 0;
+      z-index: 80;
+      border: 1px solid rgba(255,255,255,0.25);
+      white-space: nowrap;
+    }
+    canvas {
+      display: block;
+    }
+    @media (max-width: 600px) {
+      #info-panel {
+        padding: 16px 24px;
+      }
+      #info-title {
+        font-size: 1.4rem;
+      }
+      #hint {
+        bottom: 20px;
+        right: 20px;
+        font-size: 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="info-panel">
+    <h2 id="info-title">NODE</h2>
+    <p id="info-description">Discover the signal</p>
+  </div>
+  <div id="hint">MOVE MOUSE • CLICK OBJECTS • SCROLL</div>
+  <div class="tooltip" id="tooltip"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+    import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
+
+    // --- INITIALIZATION ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050514);
+    scene.fog = new THREE.FogExp2(0x050514, 0.0008);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 200);
+    camera.position.set(8, 6, 15);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      powerPreference: "high-performance"
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap for performance
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    document.body.appendChild(renderer.domElement);
+
+    // --- CONTROLS (Orbit with smooth damping) ---
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 0.5;
+    controls.zoomSpeed = 1.2;
+    controls.panSpeed = 0.5;
+    controls.target.set(0, 1.5, 0);
+    controls.maxPolarAngle = Math.PI / 1.8; // Prevent going too low
+    controls.minDistance = 5;
+    controls.maxDistance = 30;
+    controls.update();
+
+    // --- POST PROCESSING (Bloom + subtle RGB shift) ---
+    const renderScene = new RenderPass(scene, camera);
+    
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.4, 0.85);
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 0.9;
+    bloomPass.radius = 0.5;
+
+    const rgbShiftPass = new ShaderPass(RGBShiftShader);
+    rgbShiftPass.uniforms['amount'].value = 0.0015; // Very subtle
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+    composer.addPass(rgbShiftPass);
+    rgbShiftPass.renderToScreen = true;
+
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0x404066);
+    scene.add(ambientLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xccddff, 0.9);
+    dirLight.position.set(10, 20, 5);
+    scene.add(dirLight);
+    
+    const pointLight1 = new THREE.PointLight(0x4466ff, 0.8, 25);
+    pointLight1.position.set(-5, 3, 4);
+    scene.add(pointLight1);
+    
+    const pointLight2 = new THREE.PointLight(0xff44aa, 0.6, 20);
+    pointLight2.position.set(6, 2, -4);
+    scene.add(pointLight2);
+    
+    // Additional accent lights
+    const pointLight3 = new THREE.PointLight(0x22ccff, 0.7, 18);
+    pointLight3.position.set(0, 5, -5);
+    scene.add(pointLight3);
+
+    // --- ENVIRONMENT: SKYBOX / ATMOSPHERE ---
+    // Create a starfield particle system as background
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsCount = 800;
+    const starsPositions = new Float32Array(starsCount * 3);
+    for (let i = 0; i < starsCount * 3; i += 3) {
+      starsPositions[i] = (Math.random() - 0.5) * 120;
+      starsPositions[i+1] = (Math.random() - 0.5) * 60 + 10;
+      starsPositions[i+2] = (Math.random() - 0.5) * 100;
+    }
+    starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+    const starsMaterial = new THREE.PointsMaterial({
+      color: 0xaaccff,
+      size: 0.15,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
+
+    // --- FLOATING PLATFORMS & TERRAIN ---
+    const platformsGroup = new THREE.Group();
+    scene.add(platformsGroup);
+
+    function createPlatform(x, y, z, scale, color, emissive) {
+      const geometry = new THREE.CylinderGeometry(1.2, 1.4, 0.15, 16);
+      const material = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.3,
+        metalness: 0.4,
+        emissive: emissive,
+        emissiveIntensity: 0.25
+      });
+      const platform = new THREE.Mesh(geometry, material);
+      platform.position.set(x, y, z);
+      platform.scale.set(scale, 1, scale);
+      platform.castShadow = true;
+      platform.receiveShadow = true;
+      return platform;
+    }
+
+    // Main central platform
+    const centralPlatform = createPlatform(0, -0.3, 0, 2.2, 0x2a2a4a, 0x101030);
+    platformsGroup.add(centralPlatform);
+    
+    // Surrounding floating islands
+    const islandPositions = [
+      { pos: [-3.8, 0.2, -2.5], scale: 0.9, color: 0x3a3a6a, emissive: 0x111133 },
+      { pos: [4.2, -0.1, -2.8], scale: 1.0, color: 0x4a3a5a, emissive: 0x221133 },
+      { pos: [-3.5, 0.4, 3.2], scale: 0.85, color: 0x2a4a5a, emissive: 0x112233 },
+      { pos: [3.8, 0.1, 3.5], scale: 0.95, color: 0x3a4a6a, emissive: 0x112244 },
+      { pos: [0, -0.8, -4.5], scale: 0.7, color: 0x4a3a5a, emissive: 0x221122 },
+      { pos: [0, -0.5, 4.8], scale: 0.75, color: 0x2a3a5a, emissive: 0x112233 }
+    ];
+    
+    islandPositions.forEach(p => {
+      const plat = createPlatform(p.pos[0], p.pos[1], p.pos[2], p.scale, p.color, p.emissive);
+      platformsGroup.add(plat);
+    });
+
+    // --- INTERACTIVE OBJECTS (Nodes) ---
+    const interactiveObjects = [];
+    
+    function createInteractiveNode(x, y, z, color, title, description) {
+      const group = new THREE.Group();
+      
+      // Core geometry
+      const coreGeo = new THREE.IcosahedronGeometry(0.5, 1);
+      const coreMat = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.2,
+        metalness: 0.5,
+        emissive: color,
+        emissiveIntensity: 0.4
+      });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      group.add(core);
+      
+      // Outer ring
+      const ringGeo = new THREE.TorusGeometry(0.7, 0.05, 16, 32);
+      const ringMat = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.3,
+        metalness: 0.6,
+        emissive: color,
+        emissiveIntensity: 0.2
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      group.add(ring);
+      
+      // Small orbiting particles
+      const particlesGeo = new THREE.BufferGeometry();
+      const particlesCount = 20;
+      const particlesPositions = new Float32Array(particlesCount * 3);
+      for (let i = 0; i < particlesCount * 3; i += 3) {
+        const angle = (i / 3) * Math.PI * 2 / (particlesCount/2);
+        const radius = 0.9;
+        particlesPositions[i] = Math.cos(angle) * radius;
+        particlesPositions[i+1] = Math.sin(angle) * radius * 0.5;
+        particlesPositions[i+2] = 0;
+      }
+      particlesGeo.setAttribute('position', new THREE.BufferAttribute(particlesPositions, 3));
+      const particlesMat = new THREE.PointsMaterial({
+        color: color,
+        size: 0.04,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const particles = new THREE.Points(particlesGeo, particlesMat);
+      group.add(particles);
+      
+      group.position.set(x, y, z);
+      group.userData = {
+        title: title,
+        description: description,
+        color: color,
+        hover: false,
+        baseY: y,
+        floatOffset: Math.random() * Math.PI * 2,
+        ring: ring,
+        particles: particles
+      };
+      
+      scene.add(group);
+      interactiveObjects.push(group);
+      return group;
+    }
+
+    // Create several nodes around the scene
+    createInteractiveNode(-1.8, 1.2, -1.5, 0xff5588, 'CRIMSON ECHO', 'A pulse from the old network.');
+    createInteractiveNode(2.2, 1.5, -1.2, 0x44aaff, 'AZURE DRIFT', 'Data stream in perpetual flow.');
+    createInteractiveNode(-2.3, 1.0, 2.0, 0xaa44ff, 'VIOLET CORE', 'Encrypted memories flicker.');
+    createInteractiveNode(1.9, 1.3, 2.3, 0xffaa22, 'AMBER LINK', 'Connection to the outer rim.');
+    createInteractiveNode(0.2, 2.0, -3.2, 0x22ccaa, 'VIRIDIAN SEED', 'Growth beneath the surface.');
+    createInteractiveNode(-0.5, 2.2, 3.5, 0xff66aa, 'ROSE MATRIX', 'Echoes of a forgotten song.');
+
+    // --- AMBIENT PARTICLES (Floating dust/spores) ---
+    const dustGeometry = new THREE.BufferGeometry();
+    const dustCount = 500;
+    const dustPositions = new Float32Array(dustCount * 3);
+    const dustColors = new Float32Array(dustCount * 3);
+    for (let i = 0; i < dustCount * 3; i += 3) {
+      dustPositions[i] = (Math.random() - 0.5) * 18;
+      dustPositions[i+1] = (Math.random() * 8) + 0.5;
+      dustPositions[i+2] = (Math.random() - 0.5) * 16;
+      
+      dustColors[i] = 0.7 + Math.random() * 0.3;
+      dustColors[i+1] = 0.6 + Math.random() * 0.4;
+      dustColors[i+2] = 0.9 + Math.random() * 0.3;
+    }
+    dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    dustGeometry.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
+    const dustMaterial = new THREE.PointsMaterial({
+      size: 0.06,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      opacity: 0.7,
+      transparent: true
+    });
+    const dustParticles = new THREE.Points(dustGeometry, dustMaterial);
+    scene.add(dustParticles);
+
+    // --- UI ELEMENTS ---
+    const infoPanel = document.getElementById('info-panel');
+    const infoTitle = document.getElementById('info-title');
+    const infoDescription = document.getElementById('info-description');
+    const tooltip = document.getElementById('tooltip');
+    
+    let focusedObject = null;
+    let targetFocusPosition = new THREE.Vector3();
+    let originalCameraTarget = new THREE.Vector3(0, 1.5, 0);
+    let isFocusing = false;
+    let focusTransition = 0;
+
+    // --- RAYCASTER FOR INTERACTION ---
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    
+    function onMouseMove(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      // Update tooltip position
+      tooltip.style.left = event.clientX + 'px';
+      tooltip.style.top = (event.clientY - 40) + 'px';
+    }
+    
+    function onMouseClick(event) {
+      if (isFocusing) return;
+      
+      raycaster.setFromCamera(mouse, camera);
+      
+      const intersects = raycaster.intersectObjects(interactiveObjects, true);
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj && !interactiveObjects.includes(obj)) {
+          obj = obj.parent;
+        }
+        if (obj && interactiveObjects.includes(obj)) {
+          focusOnObject(obj);
+        }
+      } else {
+        // Clicked empty space: release focus
+        if (focusedObject) {
+          releaseFocus();
+        }
+      }
+    }
+    
+    function focusOnObject(obj) {
+      if (focusedObject === obj) return;
+      
+      focusedObject = obj;
+      isFocusing = true;
+      focusTransition = 0;
+      
+      // Store original target
+      originalCameraTarget.copy(controls.target);
+      
+      // Set new target to object position
+      targetFocusPosition.copy(obj.position);
+      
+      // Update UI
+      infoTitle.textContent = obj.userData.title;
+      infoDescription.textContent = obj.userData.description;
+      infoPanel.classList.add('active');
+      
+      // Animate object slightly
+      obj.userData.hover = true;
+    }
+    
+    function releaseFocus() {
+      if (!focusedObject) return;
+      focusedObject.userData.hover = false;
+      focusedObject = null;
+      isFocusing = true;
+      focusTransition = 0;
+      targetFocusPosition.copy(originalCameraTarget);
+      infoPanel.classList.remove('active');
+    }
+    
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('click', onMouseClick);
+    
+    // Touch support for mobile
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        // Simulate click on touch
+        onMouseClick({});
+      }
+    });
+
+    // --- ANIMATION LOOP ---
+    let clock = new THREE.Clock();
+
+    function animate() {
+      const delta = clock.getDelta();
+      const elapsedTime = performance.now() * 0.001; // seconds
+      
+      // Rotate stars slowly
+      stars.rotation.y += 0.0001;
+      stars.rotation.x += 0.00005;
+      
+      // Animate dust particles
+      dustParticles.rotation.y += 0.0002;
+      
+      // Animate interactive objects (floating & rotation)
+      interactiveObjects.forEach(obj => {
+        // Floating idle animation
+        const baseY = obj.userData.baseY;
+        const floatOffset = obj.userData.floatOffset;
+        obj.position.y = baseY + Math.sin(elapsedTime * 2.5 + floatOffset) * 0.12;
+        
+        // Slow rotation
+        obj.rotation.y += 0.008;
+        if (obj.userData.ring) {
+          obj.userData.ring.rotation.z += 0.01;
+        }
+        if (obj.userData.particles) {
+          obj.userData.particles.rotation.z -= 0.005;
+        }
+        
+        // Highlight effect on hover (via raycaster check or focus)
+        const isHovered = obj.userData.hover;
+        obj.children.forEach(child => {
+          if (child.material && child.material.emissiveIntensity !== undefined) {
+            child.material.emissiveIntensity = isHovered ? 0.9 : 0.4;
+          }
+        });
+      });
+      
+      // Handle camera focus transition
+      if (isFocusing) {
+        focusTransition += delta * 2.5;
+        if (focusTransition >= 1.0) {
+          focusTransition = 1.0;
+          isFocusing = false;
+          controls.target.copy(targetFocusPosition);
+        } else {
+          // Smooth interpolation
+          controls.target.lerp(targetFocusPosition, 0.1);
+        }
+      }
+      
+      // Update raycaster hover states (separate from focus)
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(interactiveObjects, true);
+      
+      let hoveredObj = null;
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj && !interactiveObjects.includes(obj)) {
+          obj = obj.parent;
+        }
+        if (obj && interactiveObjects.includes(obj)) {
+          hoveredObj = obj;
+        }
+      }
+      
+      // Update hover states and tooltip
+      interactiveObjects.forEach(obj => {
+        if (obj === hoveredObj && obj !== focusedObject) {
+          obj.userData.hover = true;
+          tooltip.style.opacity = '1';
+          tooltip.textContent = obj.userData.title;
+        } else if (obj !== focusedObject) {
+          obj.userData.hover = false;
+        }
+      });
+      
+      if (!hoveredObj || focusedObject) {
+        tooltip.style.opacity = '0';
+      }
+      
+      // Update controls
+      controls.update();
+      
+      // Render via composer
+      composer.render();
+      
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // --- RESIZE HANDLER ---
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Initial hide of tooltip
+    tooltip.style.opacity = '0';
+    
+    console.log('🌌 Digital Horizon ready. Explore the nodes.');
+  </script>
+</body>
+</html>
